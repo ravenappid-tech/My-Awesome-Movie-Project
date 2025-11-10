@@ -1,15 +1,16 @@
-// js/auth.js
+// js/auth.js (เวอร์ชันเต็ม)
 
-// นี่คือ "ที่อยู่" ของ API หลังบ้านของเรา
 const API_URL = 'http://localhost:3001';
 
 // รอให้หน้าเว็บโหลดเสร็จก่อน
 document.addEventListener('DOMContentLoaded', () => {
     
     const registerForm = document.getElementById('register-form');
-    const loginForm = document.getElementById('login-form'); // 👈 เพิ่มตัวแปรฟอร์มล็อกอิน
+    const loginForm = document.getElementById('login-form'); 
+    const forgotPasswordForm = document.getElementById('forgot-password-form'); // 👈 ใหม่
+    const resetPasswordForm = document.getElementById('reset-password-form');   // 👈 ใหม่
 
-    // 1. --- (โค้ดเดิม) จัดการฟอร์มสมัครสมาชิก ---
+    // 1. --- จัดการฟอร์มสมัครสมาชิก ---
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault(); 
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (response.ok) {
                     alert('Registration successful! Please login.');
-                    window.location.href = 'index.html'; // 👈 แก้ Path ให้ไม่มี /
+                    window.location.href = 'index.html'; 
                 } else {
                     alert(`Error: ${data.error}`);
                 }
@@ -43,47 +44,113 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 2. --- (โค้ดใหม่) จัดการฟอร์มล็อกอิน ---
+    // 2. --- จัดการฟอร์มล็อกอิน ---
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // หยุดไม่ให้ฟอร์มโหลดหน้าใหม่
-
-            // 2.1 ดึงข้อมูลจากฟอร์ม
+            e.preventDefault(); 
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            // 2.2 ส่งข้อมูลไปหา API หลังบ้าน (Backend)
             try {
                 const response = await fetch(`${API_URL}/auth/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    }),
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
                 });
 
                 const data = await response.json();
-
                 if (response.ok) {
-                    // ถ้าล็อกอินสำเร็จ
-                    alert('Login successful! Redirecting to dashboard...');
-                    
-                    // 2.3 (สำคัญมาก!) เก็บ "ตั๋ว" (Token) ไว้ใน browser
                     localStorage.setItem('movieApiToken', data.token);
-                    
-                    // 2.4 ส่งไปหน้า Dashboard
-                    window.location.href = 'dashboard.html'; // 👈 แก้ Path ให้ไม่มี /
+                    window.location.href = 'dashboard.html'; 
                 } else {
-                    // ถ้าไม่สำเร็จ (เช่น รหัสผ่านผิด)
                     alert(`Error: ${data.error}`);
                 }
-
             } catch (error) {
                 console.error('Login failed:', error);
                 alert('Could not connect to the server.');
+            }
+        });
+    }
+
+    // 3. --- ‼️ โค้ดใหม่: จัดการฟอร์มลืมรหัสผ่าน ---
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = 'Sending request...';
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageEl.textContent = data.message;
+                    messageEl.className = "text-center text-green-400 mt-4";
+                } else {
+                    messageEl.textContent = data.error; // (จะแสดง Error ที่เราเขียนไว้ เช่น "Please link Telegram...")
+                    messageEl.className = "text-center text-red-400 mt-4";
+                }
+            } catch (error) {
+                console.error('Forgot password failed:', error);
+                messageEl.textContent = 'Could not connect to the server.';
+                messageEl.className = "text-center text-red-400 mt-4";
+            }
+        });
+    }
+
+    // 4. --- ‼️ โค้ดใหม่: จัดการฟอร์มรีเซ็ตรหัสผ่าน ---
+    if (resetPasswordForm) {
+        // 4.1) ดึง Token จาก URL มาใส่ในฟอร์ม
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (!token) {
+            document.getElementById('message').textContent = 'Invalid or missing reset token.';
+        }
+        document.getElementById('reset-token').value = token;
+        
+        // 4.2) ดักจับการ Submit
+        resetPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const token = document.getElementById('reset-token').value;
+            const messageEl = document.getElementById('message');
+
+            if (password !== confirmPassword) {
+                messageEl.textContent = 'Passwords do not match!';
+                return;
+            }
+            if (!token) {
+                messageEl.textContent = 'Invalid or missing reset token.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/auth/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, password }),
+                });
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Password reset successful! Please login.');
+                    window.location.href = 'index.html';
+                } else {
+                    messageEl.textContent = data.error;
+                }
+            } catch (error) {
+                console.error('Reset password failed:', error);
+                messageEl.textContent = 'Could not connect to the server.';
+                messageEl.className = "text-center text-red-400 mt-4";
             }
         });
     }
