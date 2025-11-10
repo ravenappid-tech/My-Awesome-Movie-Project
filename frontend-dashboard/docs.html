@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - Movie API</title>
+    <link href="dist/output.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
+
+    <nav class="bg-gray-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-2xl font-bold text-indigo-400">Movie API Docs</h1>
+                </div>
+                <div>
+                    <a href="dashboard.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                    <a href="#" id="logout-button" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto py-12 px-4">
+        
+        <header class="mb-10">
+            <h2 class="text-4xl font-bold leading-tight text-white mb-4">API Documentation</h2>
+            <p class="text-lg text-gray-400">Learn how to use our Movie API to get stream URLs for your application.</p>
+        </header>
+
+        <section class="mb-10">
+            <h3 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Authentication</h3>
+            <p class="mb-4">
+                Our API uses an API Key for authentication. You must send your API Key in the <code class="bg-gray-700 p-1 rounded">x-api-key</code> header with every request.
+            </p>
+            <p class="mb-4">You can create and manage your API keys from your <a href="dashboard.html" class="text-indigo-400 hover:underline">dashboard</a>.</p>
+            
+            <div class="bg-gray-800 p-4 rounded-md shadow">
+                <pre class="text-gray-300"><code class="language-bash"># Example Header
+x-api-key: sk_live_your_secret_api_key_here</code></pre>
+            </div>
+        </section>
+
+        <section class="mb-10">
+            <h3 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Get Movie Stream URL</h3>
+            <p class="mb-4">Retrieves the details and stream URL for a specific movie by its ID.</p>
+            
+            <div class="flex items-center space-x-2 mb-4">
+                <span class="bg-green-600 text-white text-sm font-bold px-3 py-1 rounded-md">GET</span>
+                <code class="bg-gray-700 p-2 rounded text-gray-300">/api/v1/movie/:movieId</code>
+            </div>
+
+            <h4 class="text-xl font-semibold mt-6 mb-2">Parameters</h4>
+            <ul class="list-disc list-inside bg-gray-800 p-4 rounded-md">
+                <li><code class="bg-gray-700 p-1 rounded">movieId</code> (string) - <span class="text-red-400">Required</span>. The ID of the movie you want to retrieve.</li>
+            </ul>
+
+            <h4 class="text-xl font-semibold mt-6 mb-2">Example Request (JavaScript)</h4>
+            <div class="bg-gray-800 p-4 rounded-md shadow">
+<pre><code class="language-javascript">const API_BASE = "http://your-backend-api-domain.com"; // (Domain API ของคุณ)
+const MOVIE_ID = "101"; // (ID หนังที่คุณต้องการ)
+const API_KEY = "your-api-key-here";
+
+fetch(`${API_BASE}/api/v1/movie/${MOVIE_ID}`, {
+  method: "GET",
+  headers: {
+    "x-api-key": API_KEY
+  }
+})
+.then(res => res.json())
+.then(data => console.log(data))
+.catch(err => console.error(err));
+</code></pre>
+            </div>
+
+            <h4 class="text-xl font-semibold mt-6 mb-2">Success Response (200 OK)</h4>
+            <div class="bg-gray-800 p-4 rounded-md shadow">
+<pre><code class="language-json">{
+  "id": 101,
+  "title": "Inception",
+  "description": "A thief who steals corporate secrets...",
+  "stream_url": "https://[your-cloudfront-domain].net/Inception/master.m3u8"
+}</code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h3 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Error Responses</h3>
+            <div class="bg-gray-800 p-4 rounded-md shadow space-y-4">
+                <p><code class="bg-red-500 text-white p-1 rounded">401 Unauthorized</code> - Missing API Key.</p>
+                <p><code class="bg-red-500 text-white p-1 rounded">403 Forbidden</code> - Invalid API Key or Key is inactive.</p>
+                <p><code class="bg-red-500 text-white p-1 rounded">404 Not Found</code> - Movie with the specified ID was not found.</p>
+                <p><code class="bg-red-500 text-white p-1 rounded">429 Too Many Requests</code> - Your quota limit has been exceeded.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // เพิ่มโค้ด Logout แบบง่ายๆ
+        document.getElementById('logout-button').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('movieApiToken');
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>
