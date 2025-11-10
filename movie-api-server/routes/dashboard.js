@@ -1,6 +1,7 @@
 // /routes/dashboard.js
 const express = require('express');
-const crypto = require('crypto'); // Library สำหรับสร้าง Key (มีใน Node.js)
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs'); // (สำคัญ! ต้อง Import bcryptjs)
 const pool = require('../config/db');
 const checkAuth = require('../middleware/checkAuth'); // Import "ยาม"
 
@@ -99,6 +100,68 @@ router.delete('/keys/:keyId', async (req, res) => {
         res.json({ message: 'API Key deleted successfully' });
     } catch (error) {
         console.error(error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// --- POST /dashboard/link-telegram (API สำหรับบันทึก Chat ID) ---
+router.post('/link-telegram', async (req, res) => {
+    try {
+        const { chatId } = req.body;
+        const userId = req.user.id;
+
+        if (!chatId) {
+            return res.status(400).json({ error: 'Chat ID is required' });
+        }
+
+        // บันทึก Chat ID ลงในตาราง users
+        await pool.execute(
+            'UPDATE users SET telegram_chat_id = ? WHERE id = ?',
+            [chatId, userId]
+        );
+
+        res.json({ message: 'Telegram account linked successfully!' });
+        
+    } catch (error) {
+        console.error('Error linking Telegram:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// --- POST /dashboard/change-password (API สำหรับเปลี่ยนรหัสผ่าน) ---
+router.post('/change-password', async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        // 1. ดึงรหัสผ่านเก่าจาก DB
+        const [users] = await pool.execute('SELECT * FROM users WHERE id = ?', [userId]);
+        const user = users[0];
+
+        // 2. ตรวจสอบรหัสผ่านปัจจุบัน
+        const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid current password' });
+        }
+
+        // 3. เข้ารหัสรหัสผ่านใหม่
+        const salt = await bcrypt.genSalt(10);
+        const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+        // 4. บันทึกรหัสผ่านใหม่
+        await pool.execute(
+            'UPDATE users SET password_hash = ? WHERE id = ?',
+            [newPasswordHash, userId]
+        );
+
+        res.json({ message: 'Password updated successfully!' });
+
+    } catch (error) {
+        console.error('Change password error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
