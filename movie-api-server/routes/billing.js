@@ -10,7 +10,7 @@ const router = express.Router();
 // (ในระบบจริง, คุณควรสร้าง "Products" ใน Stripe Dashboard)
 const PLANS = {
     pro: {
-        id: 'price_YOUR_PRO_PLAN_ID', // ‼️ (สำคัญ!) คุณต้องสร้าง Price ID นี้ใน Stripe Dashboard
+        id: 'price_1SRxfyRoD2KA8Wef1WCxsbka', // ‼️ (สำคัญ!) คุณต้องสร้าง Price ID นี้ใน Stripe Dashboard
         name: 'Pro Plan',
         quota: 1000000
     }
