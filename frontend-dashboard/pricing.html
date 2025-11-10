@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing Plans - Movie API</title>
+    <link href="dist/output.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
+
+    <nav class="bg-gray-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-2xl font-bold text-indigo-400">Movie API</h1>
+                </div>
+                <div>
+                    <a href="dashboard.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                    <a href="docs.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">API Docs</a>
+                    <a href="account.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Account</a>
+                    <a href="#" id="logout-button" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto py-12 px-4">
+        <header class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-white mb-4">Choose Your Plan</h2>
+            <p class="text-lg text-gray-400">Start for free, or upgrade to Pro for more power.</p>
+        </header>
+
+        <div class="flex flex-col md:flex-row justify-center gap-8">
+
+            <div class="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 w-full md:w-1/2">
+                <h3 class="text-2xl font-semibold mb-4">Free Plan</h3>
+                <p class="text-4xl font-bold mb-4">
+                    $0<span class="text-lg font-normal text-gray-400">/month</span>
+                </p>
+                <ul class="space-y-3 text-gray-300 mb-6">
+                    <li class="flex items-center">
+                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        10,000 API Requests/month
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Community Support
+                    </li>
+                </ul>
+                <button 
+                    disabled
+                    class="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md cursor-not-allowed"
+                >
+                    Your Current Plan
+                </button>
+            </div>
+
+            <div class="bg-gray-800 p-8 rounded-lg shadow-lg border border-indigo-500 w-full md:w-1/2">
+                <span class="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg -mt-8 mr-8">POPULAR</span>
+                
+                <h3 class="text-2xl font-semibold mb-4 text-indigo-400">Pro Plan</h3>
+                <p class="text-4xl font-bold mb-4">
+                    $19<span class="text-lg font-normal text-gray-400">/month</span>
+                </p>
+                <ul class="space-y-3 text-gray-300 mb-6">
+                    <li class="flex items-center">
+                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        1,000,000 API Requests/month
+                    </li>
+                    <li class="flex items-center">
+                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Email Support
+                    </li>
+                </ul>
+                <button 
+                    id="upgrade-to-pro-btn"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                >
+                    Upgrade to Pro
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="js/billing.js"></script> 
+</body>
+</html>
