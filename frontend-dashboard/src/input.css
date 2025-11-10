@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* นี่คือที่ที่คุณสามารถเพิ่ม CSS ของคุณเองได้ในอนาคต 
+  เช่น:
+  body {
+    @apply bg-gray-900 text-white; 
+  }
+*/

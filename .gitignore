@@ -1,0 +1,8 @@
+# ไฟล์ความลับ (ห้ามอัปโหลด!)
+**/.env
+
+# โฟลเดอร์ Library (ไม่จำเป็นต้องอัปโหลด)
+**/node_modules
+
+# ไฟล์ Output (จากโรงงาน)
+/movie-transcoder/output_hls/

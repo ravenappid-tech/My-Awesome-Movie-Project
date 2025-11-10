@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Movie API</title>
+    <link href="dist/output.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
+
+    <nav class="bg-gray-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-2xl font-bold text-indigo-400">Movie API Dashboard</h1>
+                </div>
+                <div>
+                    <a 
+                        href="#" 
+                        id="logout-button"
+                        class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300"
+                    >
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        
+        <header class="mb-8">
+            <h2 class="text-3xl font-semibold leading-tight">
+                Welcome back, 
+                <span id="user-email" class="text-indigo-400">...loading</span>
+            </h2>
+        </header>
+
+        <section class="mb-10">
+            <h3 class="text-2xl font-semibold mb-4">Usage Statistics</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h4 class="text-lg font-medium text-gray-400 mb-2">Monthly API Quota</h4>
+                    <p class="text-4xl font-bold text-indigo-400">
+                        <span id="quota-used">0</span> / 
+                        <span id="quota-limit">10,000</span>
+                    </p>
+                    <p class="text-sm text-gray-500 mt-2">requests used</p>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h4 class="text-lg font-medium text-gray-400 mb-2">Active Keys</h4>
+                    <p class="text-4xl font-bold">
+                        <span id="active-keys-count">0</span>
+                    </p>
+                    <p class="text-sm text-gray-500 mt-2">keys currently active</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-semibold">Your API Keys</h3>
+                <button 
+                    id="create-key-btn"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                >
+                    + Create New Key
+                </button>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg shadow-lg p-4">
+                <div id="api-keys-list" class="space-y-4">
+                    
+                    <p id="loading-keys" class="text-center text-gray-400">Loading your keys...</p>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>
