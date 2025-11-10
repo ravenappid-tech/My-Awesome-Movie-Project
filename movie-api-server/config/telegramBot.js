@@ -8,16 +8,15 @@ const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 /**
  * ฟังก์ชันสำหรับส่งข้อความ Telegram
  */
-const sendTelegramMessage = async (chatId, text) => {
+const sendTelegramMessage = async (chatId, text) => { 
     try {
+        // (‼️ ลบ parse_mode ออกทั้งหมด ‼️)
         await axios.post(`${TELEGRAM_API}/sendMessage`, {
             chat_id: chatId,
             text: text,
-            parse_mode: 'HTML' // เราจะส่งลิงก์แบบ HTML
         });
         console.log('Telegram message sent to:', chatId);
     } catch (error) {
-        // แสดง error ให้ละเอียดขึ้น
         console.error('Error sending Telegram message:', error.response ? error.response.data : error.message);
     }
 };
@@ -27,15 +26,19 @@ const sendTelegramMessage = async (chatId, text) => {
  */
 const sendPasswordResetTelegram = async (chatId, token) => {
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${token}`;
-    const message = `
-You requested a password reset for your Movie API account.
+    
+    // ‼️ นี่คือส่วนที่แก้ไข ‼️
+    // เราจะส่ง URL ดิบๆ ไปในข้อความเลย
+    // Telegram จะสร้างลิงก์ให้เองอัตโนมัติ
+    
+    const message = `You requested a password reset for your Movie API account.
 
-Please click the link below to reset your password. This link is valid for 1 hour.
+Please click the link below to reset your password. This link is valid for 1 hour:
 
-<a href="${resetUrl}">Reset Your Password</a>
+${resetUrl}
 
-If you did not request this, please ignore this message.
-    `;
+If you did not request this, please ignore this message.`;
+
     await sendTelegramMessage(chatId, message);
 };
 
