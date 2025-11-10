@@ -16,11 +16,8 @@
                 </div>
                 <div>
                     <a href="docs.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">API Docs</a>
-                    
-                    <a href="pricing.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Pricing</a>
-                    
+                    <a href="pricing.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Add Funds</a>
                     <a href="account.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Account</a>
-                    
                     <a href="#" id="logout-button" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
                         Logout
                     </a>
@@ -43,12 +40,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h4 class="text-lg font-medium text-gray-400 mb-2">Monthly API Quota</h4>
+                    <h4 class="text-lg font-medium text-gray-400 mb-2">Current Balance</h4>
                     <p class="text-4xl font-bold text-indigo-400">
-                        <span id="quota-used">0</span> / 
-                        <span id="quota-limit">10,000</span>
+                        $<span id="user-balance">0.00</span> 
                     </p>
-                    <p class="text-sm text-gray-500 mt-2">requests used</p>
+                    <p class="text-sm text-gray-500 mt-2">
+                        <a href="pricing.html" class="text-indigo-400 hover:underline">Add funds to your wallet</a>
+                    </p>
                 </div>
 
                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">

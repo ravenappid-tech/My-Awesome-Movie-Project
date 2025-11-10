@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pricing Plans - Movie API</title>
+    <title>Add Funds - Movie API</title>
     <link href="dist/output.css" rel="stylesheet">
 </head>
 <body class="bg-gray-900 text-gray-200 min-h-screen">
@@ -11,9 +11,7 @@
     <nav class="bg-gray-800 shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <div class="flex-shrink-0">
-                    <h1 class="text-2xl font-bold text-indigo-400">Movie API</h1>
-                </div>
+                <h1 class="text-2xl font-bold text-indigo-400">Movie API</h1>
                 <div>
                     <a href="dashboard.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
                     <a href="docs.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">API Docs</a>
@@ -24,62 +22,79 @@
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto py-12 px-4">
+    <main class="max-w-7xl mx-auto py-12 px-4">
         <header class="text-center mb-12">
-            <h2 class="text-4xl font-bold text-white mb-4">Choose Your Plan</h2>
-            <p class="text-lg text-gray-400">Start for free, or upgrade to Pro for more power.</p>
+            <h2 class="text-4xl font-bold text-white mb-4">Add Funds to Your Wallet</h2>
+            <p class="text-lg text-gray-400">Pay-as-you-go. Select a top-up amount below.</p>
         </header>
 
-        <div class="flex flex-col md:flex-row justify-center gap-8">
+        <div class="text-center mb-10 bg-gray-800 p-4 rounded-lg">
+            <p class="text-lg text-gray-300">Current Price:</p>
+            <p class="text-3xl font-bold text-indigo-400">$0.0001 <span class="text-lg text-gray-400">/ API Call</span></p>
+        </div>
 
-            <div class="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 w-full md:w-1/2">
-                <h3 class="text-2xl font-semibold mb-4">Free Plan</h3>
-                <p class="text-4xl font-bold mb-4">
-                    $0<span class="text-lg font-normal text-gray-400">/month</span>
-                </p>
-                <ul class="space-y-3 text-gray-300 mb-6">
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        10,000 API Requests/month
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Community Support
-                    </li>
-                </ul>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+
+            <div class="topup-card bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 hover:border-indigo-500 transition duration-200 text-center">
+                <h3 class="text-2xl font-semibold mb-4 text-indigo-400">Basic Top-up</h3>
+                <p class="text-4xl font-bold mb-4">$30.00</p>
+                <p class="text-gray-400 mb-6">(300K API calls)</p>
                 <button 
-                    disabled
-                    class="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md cursor-not-allowed"
+                    data-plan="topup30"
+                    class="btn-topup w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
                 >
-                    Your Current Plan
+                    Add Funds
                 </button>
             </div>
 
-            <div class="bg-gray-800 p-8 rounded-lg shadow-lg border border-indigo-500 w-full md:w-1/2">
-                <span class="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg -mt-8 mr-8">POPULAR</span>
-                
-                <h3 class="text-2xl font-semibold mb-4 text-indigo-400">Pro Plan</h3>
-                <p class="text-4xl font-bold mb-4">
-                    $19<span class="text-lg font-normal text-gray-400">/month</span>
-                </p>
-                <ul class="space-y-3 text-gray-300 mb-6">
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        1,000,000 API Requests/month
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Email Support
-                    </li>
-                </ul>
+            <div class="topup-card bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 hover:border-indigo-500 transition duration-200 text-center">
+                <h3 class="text-2xl font-semibold mb-4 text-indigo-400">Standard Top-up</h3>
+                <p class="text-4xl font-bold mb-4">$90.00</p>
+                <p class="text-gray-400 mb-6">(900K API calls)</p>
                 <button 
-                    id="upgrade-to-pro-btn"
-                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                    data-plan="topup90"
+                    class="btn-topup w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
                 >
-                    Upgrade to Pro
+                    Add Funds
                 </button>
             </div>
 
+            <div class="topup-card bg-gray-800 p-6 rounded-lg shadow-lg border-2 border-green-500 hover:border-green-400 transition duration-200 text-center relative">
+                <span class="absolute top-0 left-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-br-lg">BEST VALUE</span>
+                <h3 class="text-2xl font-semibold mb-4 text-green-400 mt-4">High Volume</h3>
+                <p class="text-4xl font-bold mb-4">$300.00</p>
+                <p class="text-gray-400 mb-6">(3M API calls)</p>
+                <button 
+                    data-plan="topup300"
+                    class="btn-topup w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                >
+                    Add Funds
+                </button>
+            </div>
+
+            <div class="topup-card bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 hover:border-indigo-500 transition duration-200 text-center">
+                <h3 class="text-2xl font-semibold mb-4 text-indigo-400">Enterprise</h3>
+                <p class="text-4xl font-bold mb-4">$500.00</p>
+                <p class="text-gray-400 mb-6">(5M API calls)</p>
+                <button 
+                    data-plan="topup500"
+                    class="btn-topup w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                >
+                    Add Funds
+                </button>
+            </div>
+            
+            <div class="topup-card bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 hover:border-indigo-500 transition duration-200 text-center">
+                <h3 class="text-2xl font-semibold mb-4 text-indigo-400">Massive Volume</h3>
+                <p class="text-4xl font-bold mb-4">$1000.00</p>
+                <p class="text-gray-400 mb-6">(10M API calls)</p>
+                <button 
+                    data-plan="topup1000"
+                    class="btn-topup w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                >
+                    Add Funds
+                </button>
+            </div>
         </div>
     </main>
 
