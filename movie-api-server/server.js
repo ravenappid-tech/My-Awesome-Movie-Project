@@ -1,9 +1,10 @@
 // /server.js
-require('dotenv').config(); // โหลด .env ก่อนเพื่อน
+require('dotenv').config(); 
 const express = require('express');
 const cors = require('cors');
+const { createProxyMiddleware } = require('http-proxy-middleware'); // เพิ่มบรรทัดนี้
 
-// --- Import Routes (นำเข้า API ทั้งหมด) ---
+// --- Import Routes ---
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const movieRoutes = require('./routes/movies');
@@ -13,44 +14,47 @@ const app = express();
 const port = process.env.PORT || 3001; 
 
 // --- Middlewares ---
-app.use(cors()); // อนุญาตให้ Frontend (ที่รันคนละ Port) เรียกหาได้
-
-// ‼️ (สำคัญ!) โค้ด Webhook ต้องอยู่ "ก่อน" express.json() ‼️
-// Stripe Webhook (ต้องการ Body ดิบ)
+app.use(cors()); 
 app.use('/billing/webhook', billingRoutes);
-
-// (ตอนนี้เราค่อยใช้ express.json() สำหรับ API ที่เหลือ)
 app.use(express.json()); 
 
-// --- Middleware สำหรับแนบ CLOUDFRONT_DOMAIN (แก้ไขปัญหา Invalid URL) ---
+// --- Middleware สำหรับแนบ CLOUDFRONT_DOMAIN ---
 app.use((req, res, next) => {
-    // โดเมน CloudFront (ต้องมาจาก .env)
     req.cloudfrontDomain = process.env.CLOUDFRONT_DOMAIN; 
     next();
 });
 
+// --- เพิ่ม HLS PROXY (สำคัญ!) ---
+app.use('/hls', createProxyMiddleware({
+    target: process.env.CLOUDFRONT_DOMAIN, // เช่น https://d3oqkbjyzfjzcw.cloudfront.net
+    changeOrigin: true,
+    pathRewrite: { '^/hls': '' },
+    onError: (err, req, res) => {
+        console.error('HLS Proxy Error:', err);
+        res.status(502).json({ error: 'Stream proxy failed' });
+    },
+    onProxyRes: (proxyRes) => {
+        // แก้ CORS ให้ทุกไฟล์ .m3u8 และ .ts
+        proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+        proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, HEAD';
+        proxyRes.headers['Access-Control-Allow-Headers'] = '*';
+    }
+}));
+
 // --- API Routes ---
-
-// ส่วนจัดการลูกค้า (สมัคร/ล็อกอิน/ลืมรหัส)
 app.use('/auth', authRoutes);
-
-// ส่วนจัดการ Dashboard (Profile, Keys, Balance, Telegram)
 app.use('/dashboard', dashboardRoutes);
-
-// ส่วน API หนัง (สินค้าของเรา - จะใช้ checkApiKey)
-app.use('/api/v1', movieRoutes); // 👈 แก้ไข: ใช้ movieRoutes สำหรับ /api/v1/movie
-
-// ส่วน Billing (สำหรับสร้าง Checkout Session)
+app.use('/api/v1/movie', movieRoutes); 
 app.use('/billing', billingRoutes); 
 
 // --- Endpoint ทดสอบ ---
 app.get('/', (req, res) => {
-    res.send('Movie API Server is running! 🚀');
+    res.send('Movie API Server is running!');
 });
 
 // --- Start Server ---
 app.listen(port, () => {
-    console.log(`🚀 API Server running on http://localhost:${port}`);
-    // แสดงค่า Domain ที่โหลดได้ใน Terminal เพื่อ Debug
-    console.log(`DEBUG: CLOUDFRONT_DOMAIN loaded as: ${process.env.CLOUDFRONT_DOMAIN}`);
+    console.log(`API Server running on http://localhost:${port}`);
+    console.log(`DEBUG: CLOUDFRONT_DOMAIN = ${process.env.CLOUDFRONT_DOMAIN}`);
+    console.log(`HLS Proxy วิ่งที่ /hls → ${process.env.CLOUDFRONT_DOMAIN}`);
 });
