@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Movie Test Player</title>
+    
+    <link href="dist/output.css" rel="stylesheet">
+    
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    
+    <style>
+        /* จัด Player ให้อยู่ตรงกลาง */
+        .video-js {
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 90%;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen pt-12">
+
+    <main class="max-w-4xl mx-auto px-4">
+        <h1 class="text-3xl font-bold text-indigo-400 mb-6 text-center">
+            Movie API Test Player
+        </h1>
+        <p class="text-gray-400 mb-8 text-center">
+            Testing Movie ID 101. Requires active API Key and Funds.
+        </p>
+
+        <div id="player-container" class="bg-gray-800 p-4 rounded-lg shadow-xl">
+            <video
+                id="movie-player"
+                class="video-js vjs-default-skin"
+                controls
+                preload="auto"
+                width="640"
+                height="360"
+            >
+                </video>
+            <p id="status-message" class="text-center mt-4 text-gray-400">Loading API Key...</p>
+        </div>
+        <p id="key-info" class="text-center text-xs mt-2 text-gray-500 hidden"></p>
+
+    </main>
+
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    
+    <script>
+        const API_URL = 'http://localhost:3001';
+        const MOVIE_ID = 101; 
+        
+        const statusMessage = document.getElementById('status-message');
+        const keyInfo = document.getElementById('key-info');
+        
+        async function fetchAndPlayMovie() {
+            const token = localStorage.getItem('movieApiToken');
+            
+            // 1. ตรวจสอบ Login
+            if (!token) {
+                statusMessage.textContent = '❌ Please login first (Go to index.html)';
+                statusMessage.className = 'text-red-500 text-center mt-4';
+                return;
+            }
+
+            statusMessage.textContent = 'Fetching API Key...';
+
+            // 2. ‼️ API ใหม่: ดึง Key ล่าสุด ‼️
+            let apiKey;
+            try {
+                const keyResponse = await fetch(`${API_URL}/dashboard/keys`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!keyResponse.ok) {
+                    throw new Error('Failed to fetch API key.');
+                }
+                const keys = await keyResponse.json();
+                
+                if (keys.length === 0) {
+                    statusMessage.textContent = '❌ No API keys found. Please create one on the Dashboard.';
+                    statusMessage.className = 'text-red-500 text-center mt-4';
+                    return;
+                }
+                
+                // ใช้ Key ล่าสุดที่สร้าง (element 0 เพราะเรา ORDER BY DESC ใน Backend)
+                apiKey = keys[0].api_key;
+                keyInfo.textContent = `Using API Key: ${apiKey.substring(0, 8)}...`;
+                keyInfo.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Key fetch failed:', error);
+                statusMessage.textContent = '❌ Error fetching API Key from Dashboard.';
+                statusMessage.className = 'text-red-500 text-center mt-4';
+                return;
+            }
+
+
+            statusMessage.textContent = 'Fetching movie stream URL...';
+
+            try {
+                // 3. เรียก API Movie ด้วย Key ที่ดึงมา
+                const response = await fetch(`${API_URL}/api/v1/movie/${MOVIE_ID}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-API-KEY': apiKey, 
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 4. สำเร็จ: เริ่มเล่นวิดีโอ
+                    const streamUrl = data.stream_url;
+                    
+                    // ‼️ การแก้ไขที่สำคัญ: ตรวจสอบ URL ก่อนส่งให้ XHR ‼️
+                    if (!streamUrl || (!streamUrl.startsWith('http://') && !streamUrl.startsWith('https://'))) {
+                        statusMessage.textContent = '❌ API returned an invalid or empty stream URL.';
+                        statusMessage.className = 'text-red-500 text-center mt-4';
+                        // แสดง Log ใน Console
+                        console.error("Invalid Stream URL:", streamUrl);
+                        return; // หยุดการทำงานถ้า URL ไม่ถูกต้อง
+                    }
+                    
+                    // 5. ตั้งค่า Player ด้วย URL ที่ได้มา
+                    const player = videojs('movie-player', {
+                        sources: [{
+                            src: streamUrl,
+                            type: 'application/x-mpegURL' // HLS MIME Type
+                        }],
+                        fluid: true // ให้ Player ปรับขนาดตามหน้าจอ
+                    });
+                    
+                    statusMessage.textContent = `✅ Success! Playing movie: ${data.title}`;
+                    statusMessage.className = 'text-green-500 text-center mt-4';
+                    
+                } else if (response.status === 402) {
+                    // 6. จัดการ Balance ไม่พอ
+                    statusMessage.innerHTML = `
+                        ❌ ERROR: Insufficient Funds. Your balance is $<span class="text-red-400">${data.current_balance}</span>. 
+                        Please <a href="pricing.html" class="text-indigo-400 hover:underline">Add Funds</a>.
+                    `;
+                    statusMessage.className = 'text-center mt-4';
+                }
+                 else {
+                    // 7. จัดการ Error ทั่วไป (Key ผิด, Not Found)
+                    statusMessage.textContent = `❌ API Error: ${data.error || 'Unknown error'}`;
+                    statusMessage.className = 'text-red-500 text-center mt-4';
+                }
+
+            } catch (error) {
+                console.error('Test failed:', error);
+                statusMessage.textContent = '❌ Network Connection Failed. Is Backend server running?';
+                statusMessage.className = 'text-red-500 text-center mt-4';
+            }
+        }
+
+        // เริ่มต้นการทำงาน
+        fetchAndPlayMovie();
+    </script>
+</body>
+</html>

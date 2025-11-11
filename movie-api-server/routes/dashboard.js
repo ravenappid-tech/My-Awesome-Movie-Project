@@ -1,7 +1,7 @@
 // /routes/dashboard.js
 const express = require('express');
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs'); // ต้องใช้สำหรับเปลี่ยนรหัสผ่าน
+const bcrypt = require('bcryptjs'); 
 const pool = require('../config/db');
 const checkAuth = require('../middleware/checkAuth'); 
 
@@ -10,12 +10,12 @@ const router = express.Router();
 // ใช้ "ยาม" (checkAuth) กับทุก API ในไฟล์นี้
 router.use(checkAuth);
 
-// --- ‼️ 1. GET /dashboard/profile (ดึงข้อมูล Profile) ‼️ ---
+// --- 1. GET /dashboard/profile (ดึงข้อมูล Profile) ---
 router.get('/profile', async (req, res) => {
     try {
         const userId = req.user.id;
         
-        // ดึงข้อมูลพื้นฐานที่จำเป็นสำหรับหน้า Profile
+        // ดึงข้อมูลทั้งหมดสำหรับหน้า Profile/Account Settings
         const [users] = await pool.execute(
             'SELECT email, first_name, last_name, phone FROM users WHERE id = ?',
             [userId]
@@ -33,7 +33,7 @@ router.get('/profile', async (req, res) => {
     }
 });
 
-// --- ‼️ 2. PUT /dashboard/profile (อัปเดตข้อมูล Profile) ‼️ ---
+// --- 2. PUT /dashboard/profile (อัปเดตข้อมูล Profile) ---
 router.put('/profile', async (req, res) => {
     try {
         const userId = req.user.id;
@@ -62,11 +62,13 @@ router.get('/stats', async (req, res) => {
     try {
         const userId = req.user.id; 
 
+        // ดึง Balance
         const [users] = await pool.execute(
             'SELECT balance FROM users WHERE id = ?',
             [userId]
         );
 
+        // ดึงจำนวน Key
         const [stats] = await pool.execute(
             'SELECT COUNT(*) as totalKeys FROM api_keys WHERE user_id = ?',
             [userId]
@@ -87,8 +89,9 @@ router.get('/stats', async (req, res) => {
 router.get('/keys', async (req, res) => {
     try {
         const userId = req.user.id;
+        // ดึง expires_at มาแสดงใน Frontend ด้วย
         const [keys] = await pool.execute(
-            'SELECT id, api_key, status FROM api_keys WHERE user_id = ? ORDER BY id DESC',
+            'SELECT id, api_key, status, expires_at FROM api_keys WHERE user_id = ? ORDER BY id DESC',
             [userId]
         );
         res.json(keys);
@@ -103,10 +106,14 @@ router.post('/keys', async (req, res) => {
     try {
         const userId = req.user.id;
         const newKey = `sk_live_${crypto.randomBytes(16).toString('hex')}`;
+        
+        // กำหนดวันหมดอายุเริ่มต้น (30 วันนับจากนี้)
+        const initialExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); 
 
+        // บันทึกลง DB
         const [result] = await pool.execute(
-            'INSERT INTO api_keys (user_id, api_key) VALUES (?, ?)',
-            [userId, newKey]
+            'INSERT INTO api_keys (user_id, api_key, expires_at) VALUES (?, ?, ?)',
+            [userId, newKey, initialExpiryDate]
         );
         
         const newKeyId = result.insertId;
@@ -114,7 +121,8 @@ router.post('/keys', async (req, res) => {
         res.status(201).json({
             id: newKeyId,
             api_key: newKey,
-            status: 'active'
+            status: 'active',
+            expires_at: initialExpiryDate // ส่งกลับไป
         });
 
     } catch (error) {

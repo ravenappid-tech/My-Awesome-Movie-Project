@@ -1,8 +1,8 @@
-// /middleware/checkApiKey.js (เวอร์ชัน Funds/Wallet ที่ส่ง Balance เมื่อเงินหมด)
+// /middleware/checkApiKey.js (เวอร์ชัน Pre-paid Subscription ที่ต่ออายุอัตโนมัติ)
 const pool = require('../config/db');
 
-// ‼️ (สำคัญ!) กำหนดราคาต่อการเรียก API 1 ครั้ง (ต้องตรงกับที่คุณตั้ง)
-const COST_PER_CALL = 0.0001; // (เช่น $0.0001)
+// ‼️ (สำคัญ!) กำหนดราคาต่ออายุรายเดือน (ต้องตรงกับราคา Top-up ที่ลูกค้าเติมมา)
+const MONTHLY_RENEWAL_COST = 30.00; // สมมติว่าใช้ราคา Top-up $30
 
 async function checkApiKey(req, res, next) {
     const key = req.headers['x-api-key']; 
@@ -15,10 +15,11 @@ async function checkApiKey(req, res, next) {
     try {
         connection = await pool.getConnection();
 
-        // 1. ค้นหา Key และ "เจ้าของ" (User)
+        // 1. ค้นหา Key, เจ้าของ, Balance, และ วันหมดอายุ
         const [rows] = await connection.execute(
             `SELECT 
                 k.id AS key_id, 
+                k.expires_at AS key_expires,
                 u.id AS user_id, 
                 u.email AS user_email, 
                 u.balance AS user_balance
@@ -33,36 +34,50 @@ async function checkApiKey(req, res, next) {
         }
 
         const data = rows[0];
-        const currentBalance = data.user_balance;
+        const currentBalance = parseFloat(data.user_balance);
+        const expiresAt = data.key_expires;
+        const keyId = data.key_id;
         const userId = data.user_id;
 
-        // 2. (‼️ Logic ใหม่!) ตรวจสอบยอดเงินคงเหลือ
-        if (currentBalance < COST_PER_CALL) {
-            // (สำคัญ!) 402 = Payment Required
-            // ‼️ แก้ไข: ส่งข้อมูล Balance และ Email กลับไป ‼️
-            return res.status(402).json({ 
-                error: 'Insufficient funds. Please top-up your wallet.',
-                status: 'INSUFFICIENT_FUNDS', // เพิ่มสถานะเพื่อให้ Frontend ดักจับง่าย
-                user_email: data.user_email,
-                current_balance: parseFloat(currentBalance).toFixed(4),
-                cost_per_call: COST_PER_CALL
-            });
-        }
+        // 2. ตรวจสอบ: Key หมดอายุหรือยัง
+        // (ถ้า expiresAt เป็น NULL, ถือว่าไม่หมดอายุ - อาจเป็น Key ที่สร้างใหม่)
+        if (expiresAt && new Date(expiresAt) < new Date()) {
+            
+            // 3. ถ้าหมดอายุ: ตรวจสอบ Balance เพื่อต่ออายุอัตโนมัติ
+            if (currentBalance >= MONTHLY_RENEWAL_COST) {
+                
+                // 3.1 ‼️ หักเงินและต่ออายุ (Logic สำคัญ!)
+                const newExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 วัน
+                
+                // หักเงิน (UPDATE users)
+                await connection.execute(
+                    "UPDATE users SET balance = balance - ? WHERE id = ?",
+                    [MONTHLY_RENEWAL_COST, userId]
+                );
+                
+                // ต่ออายุ Key (UPDATE api_keys)
+                await connection.execute(
+                    "UPDATE api_keys SET expires_at = ? WHERE id = ?",
+                    [newExpiryDate, keyId]
+                );
+                
+                console.log(`✅ Auto-Renewal: Key ${keyId} renewed for ${MONTHLY_RENEWAL_COST} from balance.`);
+                // อนุญาตให้ไปต่อ (ไม่ต้องทำอะไรอีก)
 
-        // 3. หักเงินออกจาก Balance (Fire-and-forget)
-        pool.execute(
-            "UPDATE users SET balance = balance - ? WHERE id = ?",
-            [COST_PER_CALL, userId]
-        );
+            } else {
+                // 4. ถ้าหมดอายุและเงินไม่พอ: บล็อกการใช้งาน
+                return res.status(402).json({ 
+                    error: `Key expired. Insufficient funds (${currentBalance.toFixed(2)}) for automatic renewal (${MONTHLY_RENEWAL_COST.toFixed(2)}).`,
+                    status: 'EXPIRED_FUNDS_LOW',
+                    user_email: data.user_email,
+                    current_balance: currentBalance.toFixed(4)
+                });
+            }
+        }
         
-        // (แนบข้อมูลผู้ใช้ไปกับ req สำหรับใช้ใน route อื่นๆ)
-        req.user = { 
-            id: userId,
-            email: data.user_email,
-            balance: currentBalance - COST_PER_CALL 
-        };
-        
-        next(); // อนุญาตให้ API ทำงานต่อ
+        // 5. อนุญาตให้ API ทำงานต่อ
+        req.user = { id: userId, email: data.user_email, balance: currentBalance };
+        next(); 
 
     } catch (error) {
         console.error('API Key check error:', error);
