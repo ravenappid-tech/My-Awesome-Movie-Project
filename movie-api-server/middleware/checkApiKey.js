@@ -38,16 +38,17 @@ async function checkApiKey(req, res, next) {
         const expiresAt = data.key_expires;
         const keyId = data.key_id;
         const userId = data.user_id;
+        let renewalOccurred = false;
 
         // 2. ตรวจสอบ: Key หมดอายุหรือยัง
-        // (ถ้า expiresAt เป็น NULL, ถือว่าไม่หมดอายุ - อาจเป็น Key ที่สร้างใหม่)
         if (expiresAt && new Date(expiresAt) < new Date()) {
             
             // 3. ถ้าหมดอายุ: ตรวจสอบ Balance เพื่อต่ออายุอัตโนมัติ
             if (currentBalance >= MONTHLY_RENEWAL_COST) {
                 
                 // 3.1 ‼️ หักเงินและต่ออายุ (Logic สำคัญ!)
-                const newExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 วัน
+                // คำนวณวันหมดอายุใหม่: เอาวันที่ปัจจุบัน + 30 วัน
+                const newExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); 
                 
                 // หักเงิน (UPDATE users)
                 await connection.execute(
@@ -61,11 +62,14 @@ async function checkApiKey(req, res, next) {
                     [newExpiryDate, keyId]
                 );
                 
-                console.log(`✅ Auto-Renewal: Key ${keyId} renewed for ${MONTHLY_RENEWAL_COST} from balance.`);
-                // อนุญาตให้ไปต่อ (ไม่ต้องทำอะไรอีก)
-
-            } else {
+                renewalOccurred = true;
+                console.log(`✅ Auto-Renewal: Key ${keyId} renewed for ${MONTHLY_RENEWAL_COST} from balance. New Expiry: ${newExpiryDate.toISOString()}`);
+                
+                // อัปเดต Balance ในหน่วยความจำเพื่อใช้ใน Response ถัดไป
+                const newBalance = currentBalance - MONTHLY_RENEWAL_COST;
+                
                 // 4. ถ้าหมดอายุและเงินไม่พอ: บล็อกการใช้งาน
+            } else {
                 return res.status(402).json({ 
                     error: `Key expired. Insufficient funds (${currentBalance.toFixed(2)}) for automatic renewal (${MONTHLY_RENEWAL_COST.toFixed(2)}).`,
                     status: 'EXPIRED_FUNDS_LOW',
@@ -76,7 +80,15 @@ async function checkApiKey(req, res, next) {
         }
         
         // 5. อนุญาตให้ API ทำงานต่อ
-        req.user = { id: userId, email: data.user_email, balance: currentBalance };
+        // ‼️ (สำคัญ!) แนบ Key Data เพื่อให้ routes/movies.js ใช้ได้ ‼️
+        req.keyData = { 
+            id: keyId,
+            status: 'ACTIVE',
+            renewal_status: renewalOccurred ? 'RENEWED' : 'NOT_DUE',
+            user_id: userId,
+            user_email: data.user_email,
+            user_balance: renewalOccurred ? currentBalance - MONTHLY_RENEWAL_COST : currentBalance
+        };
         next(); 
 
     } catch (error) {

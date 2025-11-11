@@ -1,7 +1,8 @@
 // /routes/movies.js
 const express = require('express');
 const pool = require('../config/db');
-const checkApiKey = require('../middleware/checkApiKey'); // Import "ยาม"
+// ‼️ แก้ไข: ใช้ checkApiKey โดยตรง (เพราะเป็น middleware หลัก) ‼️
+const checkApiKey = require('../middleware/checkApiKey'); 
 
 const router = express.Router();
 
@@ -19,23 +20,32 @@ router.get('/:movieId', async (req, res) => {
             [movieId]
         );
 
+        // ‼️ Logic ที่แก้ไข: ใช้ req.keyData ที่แนบมาจาก Middleware ‼️
+        // checkApiKey จะแนบ keyData มาถ้าผ่านการตรวจสอบ
+        const keyData = req.keyData; 
+
         if (rows.length === 0) {
             console.warn(`Movie API: Movie ID ${movieId} not found in DB.`);
             return res.status(404).json({ error: 'Movie not found' });
         }
         const movie = rows[0];
 
-        // 2. ‼️ การตรวจสอบ URL ที่สำคัญ ‼️
-        if (!movie.s3_path) {
-            console.error(`ERROR: Movie ID ${movieId} has an empty s3_path in the database.`);
-            return res.status(500).json({ error: 'Internal Server Error: Missing S3 path data.' });
+        // 2. การตรวจสอบ URL ที่สำคัญ 
+        if (!movie.s3_path || !req.cloudfrontDomain) {
+            console.error(`ERROR: CLOUDFRONT_DOMAIN is missing (Loaded from .env).`);
+            return res.status(500).json({ error: 'Internal Server Error: Domain configuration missing.' });
         }
         
-        // 3. ประกอบ URL ที่สมบูรณ์
-        // เราใช้ process.env.CLOUDFRONT_DOMAIN เพื่อให้ URL สมบูรณ์
-        const streamUrl = `${process.env.CLOUDFRONT_DOMAIN}${movie.s3_path}`;
+        // 3. ประกอบ URL ที่สมบูรณ์ (Path Cleaning Logic)
+        const cleanDomain = req.cloudfrontDomain.endsWith('/') 
+                            ? req.cloudfrontDomain.slice(0, -1)
+                            : req.cloudfrontDomain;
+        const cleanPath = movie.s3_path.startsWith('/')
+                          ? movie.s3_path.slice(1)
+                          : movie.s3_path;
 
-        // (DEBUG: แสดง URL ที่กำลังจะส่งใน Terminal)
+        const streamUrl = `${cleanDomain}/${cleanPath}`; 
+
         console.log('DEBUG: Final Stream URL sent:', streamUrl); 
 
         // 4. ตอบกลับด้วย URL ของ CloudFront
