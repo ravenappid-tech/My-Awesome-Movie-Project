@@ -17,98 +17,229 @@
                 <div>
                     <a href="dashboard.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
                     <a href="docs.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">API Docs</a>
+                    <a href="pricing.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Add Funds</a>
                     <a href="#" id="logout-button" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Logout</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto py-12 px-4">
-        <h2 class="text-3xl font-semibold leading-tight text-white mb-8">Account Settings</h2>
+    <main class="max-w-7xl mx-auto py-12 px-4">
 
-        <section class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-            <h3 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Billing & Invoices</h3>
-            <p class="text-gray-400 mb-4">
-                View your payment history, update billing details, and download formal tax invoices here.
-            </p>
-            <a 
-                href="https://billing.stripe.com/p/login/test_cNifZj77f5T85Na0mNak000" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
-            >
-                View Customer Portal (Invoices)
-            </a>
-            
-        </section>
-        
-        <section class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-            <h3 class="text-2xl font-semibold mb-4">Link Telegram Account</h3>
-            <p class="text-gray-400 mb-4">
-                Link your Telegram account to receive important notifications, 
-                such as password resets (this is the **only** way to reset your password).
-            </p>
-            
-            <ol class="list-decimal list-inside mb-6 p-4 bg-gray-900 rounded-md space-y-2">
-                <li>
-                    Open Telegram and search for the bot: 
-                    <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">@userinfobot</a>
-                </li>
-                <li>Press "Start" (หรือส่ง /start).</li>
-                <li>
-                    The bot will reply with your details. Copy the number next to <code class="bg-gray-700 p-1 rounded">ID:</code>
-                </li>
-            </ol>
+        <h1 class="text-4xl font-bold text-white mb-8">Account Settings</h1>
 
-            <form id="telegram-link-form">
-                <div class="flex items-center space-x-4 mb-4">
-                    <input 
-                        type="text" 
-                        id="telegram-chat-id" 
-                        placeholder="Paste your numeric Chat ID here"
-                        class="flex-grow px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        required
-                    >
+        <div class="flex">
+            
+            <div class="w-1/4 pr-8">
+                <nav class="space-y-2">
+                    
                     <button 
-                        type="submit"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                        class="menu-item block w-full text-left p-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition duration-150" 
+                        data-menu="profile"
                     >
-                        Link Account
+                        1. Profile (ข้อมูลส่วนตัว)
                     </button>
+
+                    <button 
+                        class="menu-item block w-full text-left p-3 rounded-lg hover:bg-gray-700 transition duration-150" 
+                        data-menu="password"
+                    >
+                        2. Password (เปลี่ยนรหัส)
+                    </button>
+                    
+                    <button 
+                        class="menu-item block w-full text-left p-3 rounded-lg hover:bg-gray-700 transition duration-150" 
+                        data-menu="telegram"
+                    >
+                        3. Telegram (เชื่อมต่อ Chat ID)
+                    </button>
+                    
+                    <button 
+                        class="menu-item block w-full text-left p-3 rounded-lg hover:bg-gray-700 transition duration-150" 
+                        data-menu="invoices"
+                    >
+                        4. Invoices (ประวัติการซื้อ)
+                    </button>
+
+                    <button 
+                        class="menu-item block w-full text-left p-3 rounded-lg hover:bg-gray-700 transition duration-150" 
+                        data-menu="billing"
+                    >
+                        5. Payment & Address
+                    </button>
+                    
+                </nav>
+            </div>
+
+            <div class="w-3/4">
+                <div class="bg-gray-800 p-8 rounded-lg shadow-lg">
+
+                    <div id="profile-content" class="menu-content">
+                        <h3 class="text-3xl font-bold mb-6 border-b border-gray-700 pb-2">Profile (ข้อมูลส่วนตัว)</h3>
+                        <div class="bg-gray-700 p-6 rounded-lg">
+                            <p class="text-gray-400 mb-4">Note: Email is permanent and cannot be changed.</p>
+                            
+                            <form id="profile-form">
+                                
+                                <label class="block text-gray-400 mb-2" for="first-name">First Name</label>
+                                <input id="first-name" type="text" value="" class="w-full p-3 bg-gray-600 rounded-lg text-white mb-4" required>
+                                
+                                <label class="block text-gray-400 mb-2" for="last-name">Last Name</label>
+                                <input id="last-name" type="text" value="" class="w-full p-3 bg-gray-600 rounded-lg text-white mb-4" required>
+
+                                <label class="block text-gray-400 mb-2" for="user-email">Email</label>
+                                <input id="user-email" type="email" value="loading@example.com" disabled class="w-full p-3 bg-gray-600 rounded-lg text-gray-300 cursor-not-allowed mb-4">
+                                
+                                <label class="block text-gray-400 mb-2" for="phone">Phone Number</label>
+                                <input id="phone" type="tel" value="" class="w-full p-3 bg-gray-600 rounded-lg text-white mb-6">
+                                
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md">Update Profile</button>
+                                <p id="profile-message" class="text-green-400 mt-4"></p>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="password-content" class="menu-content hidden">
+                        <h3 class="text-3xl font-bold mb-6 border-b border-gray-700 pb-2">Password (เปลี่ยนรหัส)</h3>
+                        <form id="change-password-form">
+                            <div class="mb-4">
+                                <label for="current-password" class="block text-sm font-medium mb-2">Current Password</label>
+                                <input type="password" id="current-password" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none" required>
+                            </div>
+                            <div class="mb-4">
+                                <label for="new-password" class="block text-sm font-medium mb-2">New Password</label>
+                                <input type="password" id="new-password" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none" required>
+                            </div>
+                            <div class="mb-6">
+                                <label for="confirm-new-password" class="block text-sm font-medium mb-2">Confirm New Password</label>
+                                <input type="password" id="confirm-new-password" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none" required>
+                            </div>
+                            <button 
+                                type="submit"
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                            >
+                                Update Password
+                            </button>
+                            <p id="password-message" class="text-green-400 mt-4"></p>
+                        </form>
+                    </div>
+
+                    <div id="telegram-content" class="menu-content hidden">
+                        <h3 class="text-3xl font-bold mb-6 border-b border-gray-700 pb-2">Telegram (เชื่อมต่อ Chat ID)</h3>
+                         <section>
+                            <p class="text-gray-400 mb-4">
+                                Link your Telegram account to receive important notifications, 
+                                such as password resets (this is the **only** way to reset your password).
+                            </p>
+                            
+                            <ol class="list-decimal list-inside mb-6 p-4 bg-gray-700 rounded-md space-y-2">
+                                <li>
+                                    Open Telegram and search for the bot: 
+                                    <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">@userinfobot</a>
+                                </li>
+                                <li>Press "Start" (หรือส่ง /start).</li>
+                                <li>
+                                    The bot will reply with your details. Copy the number next to <code class="bg-gray-600 p-1 rounded">ID:</code>
+                                </li>
+                            </ol>
+
+                            <form id="telegram-link-form">
+                                <div class="flex items-center space-x-4 mb-4">
+                                    <input 
+                                        type="text" 
+                                        id="telegram-chat-id" 
+                                        placeholder="Paste your numeric Chat ID here"
+                                        class="flex-grow px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        required
+                                    >
+                                    <button 
+                                        type="submit"
+                                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                                    >
+                                        Link Account
+                                    </button>
+                                </div>
+                                <p id="telegram-message" class="text-green-400 mt-0"></p> 
+                            </form>
+                        </section>
+                    </div>
+                    
+                    <div id="invoices-content" class="menu-content hidden">
+                        <h3 class="text-3xl font-bold mb-6 border-b border-gray-700 pb-2">Invoices (ประวัติการทำธุรกรรม)</h3>
+                        <div class="bg-gray-700 p-6 rounded-lg shadow-lg text-gray-400">
+                            <p>Transaction history will be displayed here soon...</p>
+                        </div>
+                    </div>
+                    
+                    <div id="billing-content" class="menu-content hidden">
+                        <h3 class="text-3xl font-bold mb-6 border-b border-gray-700 pb-2">Payment & Address (จัดการข้อมูลการเรียกเก็บเงิน)</h3>
+                        <section class="bg-gray-700 p-6 rounded-lg shadow-lg mb-8">
+                            <p class="text-gray-400 mb-4">
+                                View your payment history, update billing details, and download formal tax invoices here.
+                            </p>
+                            <a 
+                                href="https://billing.stripe.com/p/login/YOUR_STRIPE_PORTAL_URL" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+                            >
+                                View Customer Portal (Invoices)
+                            </a>
+                        </section>
+                    </div>
+
                 </div>
-                <p id="telegram-message" class="text-green-400 mt-0"></p> 
-            </form>
-        </section>
-        
-        <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h3 class="text-2xl font-semibold mb-4">Change Password</h3>
-            <p class="text-gray-400 mb-4">Update your account password.</p>
-            
-            <form id="change-password-form">
-                <div class="mb-4">
-                    <label for="current-password" class="block text-sm font-medium mb-2">Current Password</label>
-                    <input type="password" id="current-password" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none" required>
-                </div>
-                <div class="mb-4">
-                    <label for="new-password" class="block text-sm font-medium mb-2">New Password</label>
-                    <input type="password" id="new-password" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none" required>
-                </div>
-                <div class="mb-6">
-                    <label for="confirm-new-password" class="block text-sm font-medium mb-2">Confirm New Password</label>
-                    <input type="password" id="confirm-new-password" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none" required>
-                </div>
-                <button 
-                    type="submit"
-                    class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300"
-                >
-                    Update Password
-                </button>
-                <p id="password-message" class="text-green-400 mt-4"></p>
-            </form>
-        </section>
-        
+            </div>
+        </div>
+
     </main>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // (ต้องมั่นใจว่า js/account.js ทำงานแยกกัน)
+            
+            const menuItems = document.querySelectorAll('.menu-item');
+            const contents = document.querySelectorAll('.menu-content');
+
+            function setActiveMenu(activeMenu) {
+                // 1. ซ่อน Content ทั้งหมด
+                contents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                // 2. แสดง Content ที่เลือก
+                const activeContent = document.getElementById(activeMenu + '-content');
+                if (activeContent) {
+                    activeContent.classList.remove('hidden');
+                }
+
+                // 3. ปรับ Style ของปุ่มเมนู
+                menuItems.forEach(item => {
+                    item.classList.remove('bg-indigo-600');
+                    item.classList.add('hover:bg-gray-700');
+                });
+                const activeItem = document.querySelector(`[data-menu="${activeMenu}"]`);
+                if (activeItem) {
+                    activeItem.classList.add('bg-indigo-600');
+                    activeItem.classList.remove('hover:bg-gray-700');
+                }
+            }
+
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const targetMenu = this.getAttribute('data-menu');
+                    setActiveMenu(targetMenu);
+                });
+            });
+
+            // 4. ตั้งค่าเมนูเริ่มต้นเป็น Profile
+            // เราใช้ timeout 0 เพื่อให้มั่นใจว่าโค้ดหลักใน js/account.js ทำงานก่อน
+            setTimeout(() => {
+                setActiveMenu('profile');
+            }, 0);
+        });
+    </script>
+    
     <script src="js/account.js"></script> 
 </body>
 </html>

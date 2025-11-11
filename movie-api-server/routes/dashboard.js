@@ -1,33 +1,81 @@
 // /routes/dashboard.js
 const express = require('express');
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs'); // (สำคัญ! ต้อง Import bcryptjs)
+const bcrypt = require('bcryptjs'); // ต้องใช้สำหรับเปลี่ยนรหัสผ่าน
 const pool = require('../config/db');
-const checkAuth = require('../middleware/checkAuth'); // Import "ยาม"
+const checkAuth = require('../middleware/checkAuth'); 
 
 const router = express.Router();
 
-// ‼️ ใช้ "ยาม" (checkAuth) กับทุก API ในไฟล์นี้
-// แปลว่า ทุก API ในนี้ ต้องมี Token ถึงจะเรียกได้
+// ใช้ "ยาม" (checkAuth) กับทุก API ในไฟล์นี้
 router.use(checkAuth);
 
-// --- GET /dashboard/stats (ดึงสถิติ) ---
-router.get('/stats', async (req, res) => {
+// --- ‼️ 1. GET /dashboard/profile (ดึงข้อมูล Profile) ‼️ ---
+router.get('/profile', async (req, res) => {
     try {
-        const userId = req.user.id; // ID นี้ได้มาจาก checkAuth
-
-        // เราจะรวมข้อมูลจาก Key ทุกใบของ User คนนี้
-        const [stats] = await pool.execute(
-            'SELECT COUNT(*) as totalKeys, SUM(quota_used) as totalUsage, MAX(quota_limit) as quotaLimit FROM api_keys WHERE user_id = ?',
+        const userId = req.user.id;
+        
+        // ดึงข้อมูลพื้นฐานที่จำเป็นสำหรับหน้า Profile
+        const [users] = await pool.execute(
+            'SELECT email, first_name, last_name, phone FROM users WHERE id = ?',
             [userId]
         );
 
-        // ส่งข้อมูลกลับไปให้หน้า Dashboard
+        if (users.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        res.json(users[0]);
+
+    } catch (error) {
+        console.error('GET Profile error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// --- ‼️ 2. PUT /dashboard/profile (อัปเดตข้อมูล Profile) ‼️ ---
+router.put('/profile', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { first_name, last_name, phone } = req.body;
+
+        if (!first_name || !last_name) {
+            return res.status(400).json({ error: 'First Name and Last Name are required' });
+        }
+        
+        // อัปเดตข้อมูลในตาราง users
+        await pool.execute(
+            'UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE id = ?',
+            [first_name, last_name, phone, userId]
+        );
+
+        res.json({ message: 'Profile updated successfully!' });
+
+    } catch (error) {
+        console.error('PUT Profile error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// --- 3. GET /dashboard/stats (ดึงสถิติ Balance) ---
+router.get('/stats', async (req, res) => {
+    try {
+        const userId = req.user.id; 
+
+        const [users] = await pool.execute(
+            'SELECT balance FROM users WHERE id = ?',
+            [userId]
+        );
+
+        const [stats] = await pool.execute(
+            'SELECT COUNT(*) as totalKeys FROM api_keys WHERE user_id = ?',
+            [userId]
+        );
+
         res.json({
             email: req.user.email,
-            totalKeys: stats[0].totalKeys || 0,
-            totalUsage: parseInt(stats[0].totalUsage) || 0,
-            quotaLimit: stats[0].quotaLimit || 10000 // (ค่าเริ่มต้น)
+            balance: parseFloat(users[0].balance).toFixed(4), 
+            totalKeys: stats[0].totalKeys || 0
         });
     } catch (error) {
         console.error(error);
@@ -35,12 +83,12 @@ router.get('/stats', async (req, res) => {
     }
 });
 
-// --- GET /dashboard/keys (ดึง API Key ทั้งหมด) ---
+// --- 4. GET /dashboard/keys (ดึง API Key ทั้งหมด) ---
 router.get('/keys', async (req, res) => {
     try {
         const userId = req.user.id;
         const [keys] = await pool.execute(
-            'SELECT id, api_key, status, quota_used, quota_limit FROM api_keys WHERE user_id = ? ORDER BY id DESC',
+            'SELECT id, api_key, status FROM api_keys WHERE user_id = ? ORDER BY id DESC',
             [userId]
         );
         res.json(keys);
@@ -50,15 +98,12 @@ router.get('/keys', async (req, res) => {
     }
 });
 
-// --- POST /dashboard/keys (สร้าง Key ใหม่) ---
+// --- 5. POST /dashboard/keys (สร้าง Key ใหม่) ---
 router.post('/keys', async (req, res) => {
     try {
         const userId = req.user.id;
-
-        // สร้าง Key แบบสุ่ม (เช่น sk_live_... )
         const newKey = `sk_live_${crypto.randomBytes(16).toString('hex')}`;
 
-        // บันทึกลง DB
         const [result] = await pool.execute(
             'INSERT INTO api_keys (user_id, api_key) VALUES (?, ?)',
             [userId, newKey]
@@ -66,13 +111,10 @@ router.post('/keys', async (req, res) => {
         
         const newKeyId = result.insertId;
 
-        // ส่ง Key ใหม่กลับไปให้หน้าบ้าน
         res.status(201).json({
             id: newKeyId,
             api_key: newKey,
-            status: 'active',
-            quota_used: 0,
-            quota_limit: 10000
+            status: 'active'
         });
 
     } catch (error) {
@@ -81,13 +123,12 @@ router.post('/keys', async (req, res) => {
     }
 });
 
-// --- DELETE /dashboard/keys/:keyId (ลบ Key) ---
+// --- 6. DELETE /dashboard/keys/:keyId (ลบ Key) ---
 router.delete('/keys/:keyId', async (req, res) => {
     try {
         const userId = req.user.id;
         const { keyId } = req.params;
 
-        // ลบ Key โดยต้องมั่นใจว่า Key นี้เป็นของ User คนนี้ (กันคนแอบลบ Key คนอื่น)
         const [result] = await pool.execute(
             'DELETE FROM api_keys WHERE id = ? AND user_id = ?',
             [keyId, userId]
@@ -96,7 +137,6 @@ router.delete('/keys/:keyId', async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Key not found or user not authorized' });
         }
-
         res.json({ message: 'API Key deleted successfully' });
     } catch (error) {
         console.error(error);
@@ -104,7 +144,7 @@ router.delete('/keys/:keyId', async (req, res) => {
     }
 });
 
-// --- POST /dashboard/link-telegram (API สำหรับบันทึก Chat ID) ---
+// --- 7. POST /dashboard/link-telegram (บันทึก Chat ID) ---
 router.post('/link-telegram', async (req, res) => {
     try {
         const { chatId } = req.body;
@@ -113,22 +153,18 @@ router.post('/link-telegram', async (req, res) => {
         if (!chatId) {
             return res.status(400).json({ error: 'Chat ID is required' });
         }
-
-        // บันทึก Chat ID ลงในตาราง users
         await pool.execute(
             'UPDATE users SET telegram_chat_id = ? WHERE id = ?',
             [chatId, userId]
         );
-
         res.json({ message: 'Telegram account linked successfully!' });
-        
     } catch (error) {
         console.error('Error linking Telegram:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
-// --- POST /dashboard/change-password (API สำหรับเปลี่ยนรหัสผ่าน) ---
+// --- 8. POST /dashboard/change-password (เปลี่ยนรหัสผ่าน) ---
 router.post('/change-password', async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
@@ -138,21 +174,17 @@ router.post('/change-password', async (req, res) => {
             return res.status(400).json({ error: 'All fields are required' });
         }
 
-        // 1. ดึงรหัสผ่านเก่าจาก DB
         const [users] = await pool.execute('SELECT * FROM users WHERE id = ?', [userId]);
         const user = users[0];
 
-        // 2. ตรวจสอบรหัสผ่านปัจจุบัน
         const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid current password' });
         }
 
-        // 3. เข้ารหัสรหัสผ่านใหม่
         const salt = await bcrypt.genSalt(10);
         const newPasswordHash = await bcrypt.hash(newPassword, salt);
 
-        // 4. บันทึกรหัสผ่านใหม่
         await pool.execute(
             'UPDATE users SET password_hash = ? WHERE id = ?',
             [newPasswordHash, userId]

@@ -1,6 +1,15 @@
-// js/dashboard.js (ไฟล์เต็ม)
+// js/dashboard.js (เวอร์ชัน Funds/Wallet)
 
 const API_URL = 'http://localhost:3001';
+
+/**
+ * ฟังก์ชันสำหรับ Logout
+ */
+function logout() {
+    alert('You have been logged out.');
+    localStorage.removeItem('movieApiToken'); // ลบ "ตั๋ว" ทิ้ง
+    window.location.href = 'index.html'; // กลับไปหน้า Login
+}
 
 // --- 1. ดึงข้อมูลผู้ใช้และ Keys ทันทีที่หน้าโหลด ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logout-button').addEventListener('click', logout);
 });
 
-// --- 2. ฟังก์ชัน: ดึงข้อมูลสถิติ (Stats) (‼️ แก้ไข ‼️) ---
+// --- 2. ฟังก์ชัน: ดึงข้อมูลสถิติ (Stats) ---
 async function fetchDashboardStats(token) {
     try {
         const response = await fetch(`${API_URL}/dashboard/stats`, {
@@ -33,7 +42,7 @@ async function fetchDashboardStats(token) {
 
         const stats = await response.json();
 
-        // (‼️ แก้ไข ‼️: อัปเดต Balance แทน Quota)
+        // อัปเดต Balance และจำนวน Key
         document.getElementById('user-email').textContent = stats.email;
         document.getElementById('user-balance').textContent = stats.balance; 
         document.getElementById('active-keys-count').textContent = stats.totalKeys;
@@ -64,7 +73,7 @@ async function fetchApiKeys(token) {
     }
 }
 
-// --- 4. ฟังก์ชัน: แสดงผล API Keys (สร้าง HTML) (‼️ แก้ไข ‼️) ---
+// --- 4. ฟังก์ชัน: แสดงผล API Keys (สร้าง HTML) ---
 function renderApiKeys(keys) {
     const listElement = document.getElementById('api-keys-list');
     listElement.innerHTML = ''; 
@@ -78,7 +87,7 @@ function renderApiKeys(keys) {
         const keyCard = document.createElement('div');
         keyCard.className = 'bg-gray-700 p-4 rounded-md flex justify-between items-center';
         
-        // (‼️ แก้ไข ‼️: ลบส่วน Quota ออก)
+        // (เราแสดงแค่ Status เพราะระบบ Funds ไม่แสดง Quota)
         keyCard.innerHTML = `
             <div>
                 <p class="text-sm text-gray-400">Key (ID: ${key.id}):</p>
