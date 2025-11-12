@@ -1,8 +1,8 @@
 // /middleware/checkApiKey.js (เวอร์ชัน Pre-paid Subscription ที่ต่ออายุอัตโนมัติ)
 const pool = require('../config/db');
 
-// ‼️ (สำคัญ!) กำหนดราคาต่ออายุรายเดือน (ต้องตรงกับราคา Top-up ที่ลูกค้าเติมมา)
-const MONTHLY_RENEWAL_COST = 30.00; // สมมติว่าใช้ราคา Top-up $30
+// ‼️ (สำคัญ!) กำหนดราคาต่ออายุรายเดือน
+const MONTHLY_RENEWAL_COST = 30.00; // (ตัวอย่าง)
 
 async function checkApiKey(req, res, next) {
     const key = req.headers['x-api-key']; 
@@ -30,6 +30,7 @@ async function checkApiKey(req, res, next) {
         );
 
         if (rows.length === 0) {
+            connection.release();
             return res.status(403).json({ error: 'Invalid or inactive API Key' });
         }
 
@@ -47,29 +48,42 @@ async function checkApiKey(req, res, next) {
             if (currentBalance >= MONTHLY_RENEWAL_COST) {
                 
                 // 3.1 ‼️ หักเงินและต่ออายุ (Logic สำคัญ!)
-                // คำนวณวันหมดอายุใหม่: เอาวันที่ปัจจุบัน + 30 วัน
-                const newExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); 
+                const newExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 วัน
                 
-                // หักเงิน (UPDATE users)
-                await connection.execute(
-                    "UPDATE users SET balance = balance - ? WHERE id = ?",
-                    [MONTHLY_RENEWAL_COST, userId]
-                );
-                
-                // ต่ออายุ Key (UPDATE api_keys)
-                await connection.execute(
-                    "UPDATE api_keys SET expires_at = ? WHERE id = ?",
-                    [newExpiryDate, keyId]
-                );
+                // (ใช้ Transaction เพื่อความปลอดภัย)
+                try {
+                    await connection.beginTransaction();
+
+                    // หักเงิน (UPDATE users)
+                    await connection.execute(
+                        "UPDATE users SET balance = balance - ? WHERE id = ?",
+                        [MONTHLY_RENEWAL_COST, userId]
+                    );
+                    
+                    // ต่ออายุ Key (UPDATE api_keys)
+                    await connection.execute(
+                        "UPDATE api_keys SET expires_at = ? WHERE id = ?",
+                        [newExpiryDate, keyId]
+                    );
+
+                    // บันทึกประวัติ (Debit)
+                    await connection.execute(
+                        "INSERT INTO transactions (user_id, type, amount, description) VALUES (?, 'debit', ?, ?)",
+                        [userId, MONTHLY_RENEWAL_COST, `Auto-renewal for API Key ID: ${keyId}`]
+                    );
+
+                    await connection.commit();
+                } catch (dbError) {
+                    await connection.rollback();
+                    throw dbError; // โยน Error
+                }
                 
                 renewalOccurred = true;
                 console.log(`✅ Auto-Renewal: Key ${keyId} renewed for ${MONTHLY_RENEWAL_COST} from balance. New Expiry: ${newExpiryDate.toISOString()}`);
                 
-                // อัปเดต Balance ในหน่วยความจำเพื่อใช้ใน Response ถัดไป
-                const newBalance = currentBalance - MONTHLY_RENEWAL_COST;
-                
-                // 4. ถ้าหมดอายุและเงินไม่พอ: บล็อกการใช้งาน
             } else {
+                // 4. ถ้าหมดอายุและเงินไม่พอ: บล็อกการใช้งาน
+                connection.release();
                 return res.status(402).json({ 
                     error: `Key expired. Insufficient funds (${currentBalance.toFixed(2)}) for automatic renewal (${MONTHLY_RENEWAL_COST.toFixed(2)}).`,
                     status: 'EXPIRED_FUNDS_LOW',
@@ -80,7 +94,6 @@ async function checkApiKey(req, res, next) {
         }
         
         // 5. อนุญาตให้ API ทำงานต่อ
-        // ‼️ (สำคัญ!) แนบ Key Data เพื่อให้ routes/movies.js ใช้ได้ ‼️
         req.keyData = { 
             id: keyId,
             status: 'ACTIVE',
@@ -99,4 +112,5 @@ async function checkApiKey(req, res, next) {
     }
 }
 
+// (เรา Export แค่ checkApiKey เพราะ MONTHLY_RENEWAL_COST ใช้แค่ในไฟล์นี้)
 module.exports = checkApiKey;
