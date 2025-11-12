@@ -1,6 +1,6 @@
 // js/dashboard.js (ไฟล์เต็ม - แก้ไข fetchDashboardStats และ createNewKey)
 
-const API_URL = 'http://localhost:3001';
+const API_URL = 'https://kuayapi.com';
 
 /**
  * ฟังก์ชันสำหรับ Logout

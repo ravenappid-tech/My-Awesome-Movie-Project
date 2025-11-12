@@ -1,6 +1,6 @@
 // js/billing.js (เวอร์ชัน Funds/Wallet 5 ระดับ)
 
-const API_URL = 'http://localhost:3001';
+const API_URL = 'https://kuayapi.com';
 
 /**
  * ฟังก์ชันสำหรับ Logout
