@@ -10,7 +10,8 @@
   "author": "Your Name",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.1692.0",
+    "@aws-sdk/client-s3": "^3.930.0",
+    "@aws-sdk/lib-storage": "^3.930.0",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

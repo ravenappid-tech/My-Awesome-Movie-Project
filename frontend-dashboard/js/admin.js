@@ -18,6 +18,7 @@ function logout() {
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('movieApiToken');
 
+    // 1. ตรวจสอบสิทธิ์ Admin
     const isAdmin = await checkAdminStatus(token);
     if (!isAdmin) {
         alert('Access Denied. You do not have permission to view this page.');
@@ -25,6 +26,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // 2. ผูก Event ให้ปุ่มและเมนู
+    
     const menuItems = document.querySelectorAll('.admin-menu-item');
     menuItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -33,12 +36,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // ‼️ (แก้ไข) เปลี่ยน Listener เป็น 'add-movie-form' ‼️
+    // ‼️ (แก้ไข) ผูก Event กับฟอร์ม "Add" ‼️
     document.getElementById('add-movie-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleAddMovie(token);
     });
 
+    // ‼️ (แก้ไข) ผูก Event กับฟอร์ม "Edit" ‼️
     document.getElementById('edit-movie-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleUpdateMovie(token);
@@ -47,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cancel-edit-btn').addEventListener('click', closeEditModal);
     document.getElementById('logout-button').addEventListener('click', logout);
 
+    // 3. โหลดเมนูเริ่มต้น (Movies)
     setActiveMenu('movies', token);
 });
 
@@ -129,7 +134,6 @@ async function loadMovies(token) {
             const row = document.createElement('tr');
             row.className = 'border-b border-gray-700';
             
-            // (เพิ่มคอลัมน์ Poster)
             row.innerHTML = `
                 <td class="py-3 pr-3">
                     <img src="${movie.poster_url || 'https://via.placeholder.com/50x75'}" alt="Poster" class="w-12 h-auto rounded">
@@ -165,15 +169,9 @@ async function handleAddMovie(token) {
 
     // 1. ดึงฟอร์ม
     const form = document.getElementById('add-movie-form');
-    // 2. สร้าง FormData จากฟอร์ม
+    // 2. สร้าง FormData จากฟอร์ม (มันจะดึง name="id", name="title", name="poster_file" ฯลฯ อัตโนมัติ)
     const formData = new FormData(form);
     
-    // (ดึงไฟล์ที่เลือก)
-    const fileInput = document.getElementById('movie-poster-file');
-    if (fileInput.files[0]) {
-        formData.append('poster_file', fileInput.files[0]);
-    }
-
     try {
         const response = await fetch(`${API_URL}/admin/movies`, {
             method: 'POST',
@@ -226,16 +224,14 @@ async function deleteMovie(id, title) {
     }
 }
 
-// ฟังก์ชัน "เปิด Modal แก้ไข" (‼️ อัปเดต ‼️)
+// ฟังก์ชัน "เปิด Modal แก้ไข"
 function openEditModal(movie) {
     document.getElementById('edit-movie-id-display').textContent = movie.id;
     document.getElementById('edit-movie-id').value = movie.id;
     document.getElementById('edit-movie-title').value = movie.title;
     document.getElementById('edit-movie-s3-path').value = movie.s3_path;
     
-    // (แสดงโปสเตอร์ปัจจุบัน)
     document.getElementById('edit-current-poster').src = movie.poster_url || 'https://via.placeholder.com/100x150';
-    // (เก็บ URL เก่าไว้ เผื่อไม่ได้อัปโหลดไฟล์ใหม่)
     document.getElementById('edit-movie-poster-url').value = movie.poster_url || '';
     
     document.getElementById('edit-movie-description').value = movie.description || '';
@@ -247,7 +243,7 @@ function openEditModal(movie) {
 // ฟังก์ชัน "ปิด Modal แก้ไข"
 function closeEditModal() {
     document.getElementById('edit-movie-modal').classList.add('hidden');
-    document.getElementById('edit-movie-form').reset(); // ล้างฟอร์มใน Modal
+    document.getElementById('edit-movie-form').reset(); 
 }
 
 // ฟังก์ชัน "จัดการอัปเดตหนัง" (‼️ อัปเดต - ใช้ FormData ‼️)
@@ -258,17 +254,8 @@ async function handleUpdateMovie(token) {
 
     const movieId = document.getElementById('edit-movie-id').value;
     
-    // 1. ดึงฟอร์ม
     const form = document.getElementById('edit-movie-form');
-    // 2. สร้าง FormData
     const formData = new FormData(form);
-
-    // (ดึงไฟล์ใหม่ ถ้ามี)
-    const fileInput = document.getElementById('edit-movie-poster-file');
-    if (fileInput.files[0]) {
-        formData.append('poster_file', fileInput.files[0]);
-    }
-    // (ถ้าไม่มีไฟล์ใหม่ Backend จะใช้ poster_url (hidden input) ที่เราตั้งไว้)
 
     try {
         const response = await fetch(`${API_URL}/admin/movies/${movieId}`, {
@@ -277,7 +264,7 @@ async function handleUpdateMovie(token) {
                 'Authorization': `Bearer ${token}`,
                 // (‼️ ไม่ต้องใส่ 'Content-Type' ‼️)
             },
-            body: formData // 👈 ส่ง FormData
+            body: formData 
         });
 
         const data = await response.json();

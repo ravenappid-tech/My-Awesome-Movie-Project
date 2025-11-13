@@ -1,44 +1,43 @@
-// /routes/admin.js (ไฟล์เต็ม - รองรับการอัปโหลดไฟล์โปสเตอร์)
+// /routes/admin.js (ไฟล์เต็ม - อัปเกรดเป็น AWS SDK v3 และลบ ACL)
 const express = require('express');
 const pool = require('../config/db');
-const checkAdmin = require('../middleware/checkAdmin'); // Import "ยาม" Admin
-const AWS = require('aws-sdk'); // ‼️ (ใหม่) Import AWS SDK
-const multer = require('multer'); // ‼️ (ใหม่) Import Multer
-const multerS3 = require('multer-s3'); // ‼️ (ใหม่) Import Multer-S3
+const checkAdmin = require('../middleware/checkAdmin');
+const multer = require('multer'); 
+const multerS3 = require('multer-s3'); 
+const { S3Client } = require('@aws-sdk/client-s3'); // ‼️ (ใหม่) Import v3 Client
 const path = require('path');
 
 const router = express.Router();
 
-// --- 1. ‼️ (ใหม่) ตั้งค่า AWS S3 Uploader ---
-// (SDK จะดึง Key, Secret, Region, Bucket จากไฟล์ .env อัตโนมัติ)
-AWS.config.update({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_S3_REGION
+// --- 1. ‼️ (ใหม่) ตั้งค่า AWS S3 Uploader (v3 Syntax) ---
+const s3 = new S3Client({
+    region: process.env.AWS_S3_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
 });
-
-const s3 = new AWS.S3();
 
 // (ตั้งค่า Multer S3)
 const upload = multer({
     storage: multerS3({
-        s3: s3,
+        s3: s3, // ‼️ ส่ง Client v3 เข้าไป
         bucket: process.env.AWS_S3_BUCKET_NAME,
-        acl: 'public-read', // ‼️ (สำคัญ!) ตั้งค่าไฟล์โปสเตอร์ให้ "สาธารณะ"
-        contentType: multerS3.AUTO_CONTENT_TYPE, // ตรวจจับประเภทไฟล์อัตโนมัติ (image/jpeg)
+        // ‼️ (แก้ไข!) ลบ acl: 'public-read' ออก ‼️
+        // (เพราะ Bucket ของเราใช้ "ACLs disabled" ซึ่งถูกต้อง)
+        contentType: multerS3.AUTO_CONTENT_TYPE, 
         key: function (req, file, cb) {
             // สร้างชื่อไฟล์ใหม่ที่ไม่ซ้ำกัน
-            // เช่น: posters/102_poster_1678886400000.jpg
-            const movieId = req.body.id || req.params.movieId; // (ดึง ID จากฟอร์ม)
+            const movieId = req.body.id || req.params.movieId; 
             const fileExt = path.extname(file.originalname);
+            // (เราจะเก็บโปสเตอร์ไว้ในโฟลเดอร์ /posters/ เพื่อให้ CloudFront/OAC อ่านได้)
             const fileName = `posters/${movieId}_poster_${Date.now()}${fileExt}`;
             cb(null, fileName);
         }
     })
 });
 
-// --- 2. ‼️ (ใหม่) Middleware สำหรับจัดการการอัปโหลด ‼️
-// 'poster_file' คือชื่อ <input type="file" name="poster_file"> ใน HTML
+// --- 2. Middleware สำหรับจัดการการอัปโหลด ---
 const uploadMiddleware = upload.single('poster_file');
 
 // --- 3. ใช้ "ยาม" Admin (checkAdmin) กับทุก API ในไฟล์นี้ ---
@@ -49,7 +48,6 @@ router.use(checkAdmin);
 // ===================================================================
 
 // --- GET /admin/movies (API สำหรับ "ดู" หนังทั้งหมด) ---
-// (เหมือนเดิม)
 router.get('/movies', async (req, res) => {
     try {
         const [movies] = await pool.execute(
@@ -62,14 +60,18 @@ router.get('/movies', async (req, res) => {
     }
 });
 
-// --- POST /admin/movies (API สำหรับ "เพิ่ม" หนัง - ‼️ แก้ไข ‼️) ---
+// --- POST /admin/movies (API สำหรับ "เพิ่ม" หนัง) ---
 router.post('/movies', uploadMiddleware, async (req, res) => {
     try {
-        // (ข้อมูล Text จะมาจาก req.body)
         const { id, title, description, s3_path } = req.body;
         
-        // (‼️ ไฟล์ที่อัปโหลด จะมาจาก req.file ‼️)
-        const poster_url = req.file ? req.file.location : null; // .location คือ S3 URL
+        // ‼️ (แก้ไข!) เราต้องสร้าง URL เอง ‼️
+        // (เพราะเราไม่ได้ตั้งค่า ACL public-read แล้ว)
+        // เราจะใช้ CloudFront Domain ของเรา + Key (ชื่อไฟล์) ที่เพิ่งอัปโหลด
+        let poster_url = null;
+        if (req.file) {
+            poster_url = `${process.env.CLOUDFRONT_DOMAIN}/${req.file.key}`; // .key คือ Path ใน S3
+        }
 
         if (!id || !title || !s3_path) {
             return res.status(400).json({ error: 'Movie ID, Title, and S3 Path are required.' });
@@ -93,14 +95,19 @@ router.post('/movies', uploadMiddleware, async (req, res) => {
     }
 });
 
-// --- PUT /admin/movies/:movieId (API สำหรับ "แก้ไข" หนัง - ‼️ แก้ไข ‼️) ---
+// --- PUT /admin/movies/:movieId (API สำหรับ "แก้ไข" หนัง) ---
 router.put('/movies/:movieId', uploadMiddleware, async (req, res) => {
     try {
         const { movieId } = req.params;
-        const { title, description, s3_path } = req.body;
+        const { title, description, s3_path, poster_url: existing_poster_url } = req.body; 
         
-        // (ถ้ามีการอัปโหลดไฟล์ใหม่ ไฟล์จะอยู่ที่ req.file)
-        const new_poster_url = req.file ? req.file.location : req.body.poster_url; // (ถ้าไม่ส่งไฟล์ใหม่ ให้ใช้ URL เดิม)
+        // ‼️ (แก้ไข!) สร้าง URL ใหม่ถ้ามีการอัปโหลดไฟล์ ‼️
+        let new_poster_url;
+        if (req.file) {
+            new_poster_url = `${process.env.CLOUDFRONT_DOMAIN}/${req.file.key}`; // .key คือ Path ใน S3
+        } else {
+            new_poster_url = existing_poster_url; // ใช้ URL เก่าถ้าไม่อัปโหลดใหม่
+        }
 
         if (!title || !s3_path) {
             return res.status(400).json({ error: 'Title and S3 Path are required.' });
@@ -126,7 +133,6 @@ router.put('/movies/:movieId', uploadMiddleware, async (req, res) => {
 });
 
 // --- DELETE /admin/movies/:movieId (API สำหรับ "ลบ" หนัง) ---
-// (เหมือนเดิม)
 router.delete('/movies/:movieId', async (req, res) => {
     try {
         const { movieId } = req.params;
@@ -143,7 +149,7 @@ router.delete('/movies/:movieId', async (req, res) => {
 
 
 // ===================================================================
-// 5. USER MANAGEMENT (จัดการผู้ใช้ - ส่วนนี้เหมือนเดิม)
+// 5. USER MANAGEMENT (จัดการผู้ใช้)
 // ===================================================================
 
 router.get('/users', async (req, res) => {
