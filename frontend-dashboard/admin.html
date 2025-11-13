@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Movie API</title>
+    <link href="dist/output.css" rel="stylesheet">
+    <style>
+        .admin-menu-item.active {
+            background-color: #4f46e5; /* indigo-600 */
+        }
+        .admin-menu-item.active:hover {
+            background-color: #4338ca; /* indigo-700 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
+
+    <nav class="bg-gray-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-2xl font-bold text-red-500">ADMIN PANEL</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="dashboard.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">(Go to User Dashboard)</a>
+                    <a href="#" id="logout-button" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-12 px-4">
+
+        <h1 class="text-4xl font-bold text-white mb-8">Admin Control</h1>
+
+        <div class="mb-6">
+            <div class="border-b border-gray-700">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button id="menu-movies" class="admin-menu-item whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500" data-menu="movies">
+                        Manage Movies
+                    </button>
+                    <button id="menu-users" class="admin-menu-item whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500" data-menu="users">
+                        Manage Users
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <div id="content-movies" class="menu-content hidden">
+            <h3 class="text-3xl font-bold mb-6">Manage Movies</h3>
+            
+            <section class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+                <h4 class="text-2xl font-semibold mb-4">Add New Movie</h4>
+                <form id="add-movie-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="movie-id" class="block text-sm font-medium mb-2">Movie ID (e.g., 101, 102)</label>
+                        <input type="number" id="movie-id" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
+                    </div>
+                    <div>
+                        <label for="movie-title" class="block text-sm font-medium mb-2">Title</label>
+                        <input type="text" id="movie-title" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="movie-s3-path" class="block text-sm font-medium mb-2">S3 Path (e.g., /Inception/101/master.m3u8)</label>
+                        <input type="text" id="movie-s3-path" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="movie-description" class="block text-sm font-medium mb-2">Description</label>
+                        <textarea id="movie-description" rows="3" class="w-full p-2 bg-gray-700 rounded-md text-white"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md">
+                            Add Movie
+                        </button>
+                        <p id="movie-form-message" class="text-green-400 mt-4 inline-block ml-4"></p>
+                    </div>
+                </form>
+            </section>
+
+            <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h4 class="text-2xl font-semibold mb-4">Existing Movies</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left">
+                        <thead class="border-b border-gray-600">
+                            <tr>
+                                <th class="py-2">ID</th>
+                                <th class="py-2">Title</th>
+                                <th class="py-2">S3 Path</th>
+                                <th class="py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="movies-table-body">
+                            <tr><td colspan="4" class="py-4 text-center text-gray-400">Loading movies...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <div id="content-users" class="menu-content hidden">
+            <h3 class="text-3xl font-bold mb-6">Manage Users</h3>
+            
+            <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h4 class="text-2xl font-semibold mb-4">All Users</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left">
+                        <thead class="border-b border-gray-600">
+                            <tr>
+                                <th class="py-2">ID</th>
+                                <th class="py-2">Email</th>
+                                <th class="py-2">Name</th>
+                                <th class="py-2 text-right">Balance</th>
+                                <th class="py-2">Admin?</th>
+                                <th class="py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr><td colspan="6" class="py-4 text-center text-gray-400">Loading users...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+    </main>
+    
+    <script src="js/admin.js"></script> 
+</body>
+</html>

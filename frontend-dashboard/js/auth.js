@@ -1,6 +1,7 @@
 // js/auth.js (เวอร์ชันเต็ม)
 
-const API_URL = 'https://kuayapi.com';
+//const API_URL = 'https://kuayapi.com';
+const API_URL = 'http://localhost:3001';
 
 // รอให้หน้าเว็บโหลดเสร็จก่อน
 document.addEventListener('DOMContentLoaded', () => {

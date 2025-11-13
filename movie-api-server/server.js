@@ -6,8 +6,9 @@ const cors = require('cors');
 // --- Import Routes (นำเข้า API ทั้งหมด) ---
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
-const movieRoutes = require('./routes/movies'); // 👈 Route นี้คือ GET /:movieId
+const movieRoutes = require('./routes/movies');
 const billingRoutes = require('./routes/billing'); 
+const adminRoutes = require('./routes/admin'); // 👈 (Import ใหม่)
 
 const app = express();
 const port = process.env.PORT || 3001; 
@@ -33,12 +34,14 @@ app.use('/auth', authRoutes);
 // ส่วนจัดการ Dashboard (Profile, Keys, Balance, Telegram)
 app.use('/dashboard', dashboardRoutes);
 
-// ‼️ ส่วน API หนัง (สินค้าของเรา) ‼️
-// แก้ไข: บอก Express ให้ใช้ movieRoutes เมื่อเจอ /api/v1/movie
+// ส่วน API หนัง (สินค้าของเรา - สำหรับลูกค้า)
 app.use('/api/v1/movie', movieRoutes); 
 
 // ส่วน Billing (สำหรับสร้าง Checkout Session)
 app.use('/billing', billingRoutes); 
+
+// ‼️ (Route ใหม่) ส่วนจัดการ Admin ‼️
+app.use('/admin', adminRoutes);
 
 // --- Endpoint ทดสอบ ---
 app.get('/', (req, res) => {
