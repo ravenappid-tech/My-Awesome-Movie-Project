@@ -4,12 +4,12 @@ const pool = require('../config/db');
 const checkAdmin = require('../middleware/checkAdmin');
 const multer = require('multer'); 
 const multerS3 = require('multer-s3'); 
-const { S3Client } = require('@aws-sdk/client-s3'); // ‼️ (ใหม่) Import v3 Client
+const { S3Client } = require('@aws-sdk/client-s3'); 
 const path = require('path');
 
 const router = express.Router();
 
-// --- 1. ‼️ (ใหม่) ตั้งค่า AWS S3 Uploader (v3 Syntax) ---
+// --- 1. ตั้งค่า AWS S3 Uploader (v3 Syntax) ---
 const s3 = new S3Client({
     region: process.env.AWS_S3_REGION,
     credentials: {
@@ -21,16 +21,13 @@ const s3 = new S3Client({
 // (ตั้งค่า Multer S3)
 const upload = multer({
     storage: multerS3({
-        s3: s3, // ‼️ ส่ง Client v3 เข้าไป
+        s3: s3, 
         bucket: process.env.AWS_S3_BUCKET_NAME,
-        // ‼️ (แก้ไข!) ลบ acl: 'public-read' ออก ‼️
-        // (เพราะ Bucket ของเราใช้ "ACLs disabled" ซึ่งถูกต้อง)
+        // (ลบ acl: 'public-read' ออก)
         contentType: multerS3.AUTO_CONTENT_TYPE, 
         key: function (req, file, cb) {
-            // สร้างชื่อไฟล์ใหม่ที่ไม่ซ้ำกัน
             const movieId = req.body.id || req.params.movieId; 
             const fileExt = path.extname(file.originalname);
-            // (เราจะเก็บโปสเตอร์ไว้ในโฟลเดอร์ /posters/ เพื่อให้ CloudFront/OAC อ่านได้)
             const fileName = `posters/${movieId}_poster_${Date.now()}${fileExt}`;
             cb(null, fileName);
         }
@@ -65,9 +62,6 @@ router.post('/movies', uploadMiddleware, async (req, res) => {
     try {
         const { id, title, description, s3_path } = req.body;
         
-        // ‼️ (แก้ไข!) เราต้องสร้าง URL เอง ‼️
-        // (เพราะเราไม่ได้ตั้งค่า ACL public-read แล้ว)
-        // เราจะใช้ CloudFront Domain ของเรา + Key (ชื่อไฟล์) ที่เพิ่งอัปโหลด
         let poster_url = null;
         if (req.file) {
             poster_url = `${process.env.CLOUDFRONT_DOMAIN}/${req.file.key}`; // .key คือ Path ใน S3
@@ -101,12 +95,11 @@ router.put('/movies/:movieId', uploadMiddleware, async (req, res) => {
         const { movieId } = req.params;
         const { title, description, s3_path, poster_url: existing_poster_url } = req.body; 
         
-        // ‼️ (แก้ไข!) สร้าง URL ใหม่ถ้ามีการอัปโหลดไฟล์ ‼️
         let new_poster_url;
         if (req.file) {
-            new_poster_url = `${process.env.CLOUDFRONT_DOMAIN}/${req.file.key}`; // .key คือ Path ใน S3
+            new_poster_url = `${process.env.CLOUDFRONT_DOMAIN}/${req.file.key}`; 
         } else {
-            new_poster_url = existing_poster_url; // ใช้ URL เก่าถ้าไม่อัปโหลดใหม่
+            new_poster_url = existing_poster_url; 
         }
 
         if (!title || !s3_path) {
@@ -152,10 +145,12 @@ router.delete('/movies/:movieId', async (req, res) => {
 // 5. USER MANAGEMENT (จัดการผู้ใช้)
 // ===================================================================
 
+// --- GET /admin/users (API สำหรับ "ดู" ผู้ใช้ทั้งหมด) ---
 router.get('/users', async (req, res) => {
     try {
+        // ‼️ (แก้ไข!) เพิ่ม 'phone' เข้าไปใน SELECT ‼️
         const [users] = await pool.execute(
-            'SELECT id, email, first_name, last_name, balance, telegram_chat_id, is_admin, created_at FROM users ORDER BY id DESC'
+            'SELECT id, email, first_name, last_name, phone, balance, telegram_chat_id, is_admin, created_at FROM users ORDER BY id DESC'
         );
         res.json(users);
     } catch (error) {
@@ -164,9 +159,12 @@ router.get('/users', async (req, res) => {
     }
 });
 
+// --- GET /admin/users/:userId (API สำหรับ "ดู" ผู้ใช้คนเดียว + API Keys ของเขา) ---
 router.get('/users/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
+        
+        // (เราใช้ * (ทั้งหมด) ที่นี่ ซึ่งรวม 'phone' อยู่แล้ว)
         const [users] = await pool.execute('SELECT * FROM users WHERE id = ?', [userId]);
         if (users.length === 0) {
             return res.status(404).json({ error: 'User not found.' });
@@ -184,10 +182,13 @@ router.get('/users/:userId', async (req, res) => {
     }
 });
 
+// --- PUT /admin/users/:userId (API สำหรับ "แก้ไข" ผู้ใช้) ---
 router.put('/users/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const { first_name, last_name, phone, balance, is_admin, telegram_chat_id } = req.body;
+        
+        // (API นี้รับ 'phone' อยู่แล้ว)
         if (first_name === undefined || last_name === undefined || balance === undefined || is_admin === undefined) {
             return res.status(400).json({ error: 'Missing required fields (first_name, last_name, balance, is_admin)' });
         }
@@ -202,6 +203,7 @@ router.put('/users/:userId', async (req, res) => {
     }
 });
 
+// --- DELETE /admin/users/:userId (API สำหรับ "ลบ" ผู้ใช้) ---
 router.delete('/users/:userId', async (req, res) => {
     try {
         const { userId } = req.params;

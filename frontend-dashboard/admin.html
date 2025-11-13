@@ -6,10 +6,12 @@
     <title>Admin Panel - Movie API</title>
     <link href="dist/output.css" rel="stylesheet">
     <style>
+        /* สไตล์สำหรับปุ่มเมนูที่ถูกเลือก */
         .admin-menu-item.active {
             border-color: #6366F1; /* indigo-500 */
             color: #a5b4fc; /* indigo-300 */
         }
+        /* ซ่อนลูกศรของ input[type=number] */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
             -webkit-appearance: none; 
@@ -18,7 +20,8 @@
         input[type=number] {
             -moz-appearance: textfield;
         }
-        #edit-movie-modal.hidden {
+        /* สไตล์สำหรับ Modal (ซ่อน/แสดง) */
+        .modal.hidden {
             display: none;
         }
     </style>
@@ -63,7 +66,6 @@
             
             <section class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
                 <h4 class="text-2xl font-semibold mb-4">Add New Movie</h4>
-                
                 <form id="add-movie-form" enctype="multipart/form-data">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -121,6 +123,7 @@
 
         <div id="content-users" class="menu-content hidden">
             <h3 class="text-3xl font-bold mb-6">Manage Users</h3>
+            
             <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h4 class="text-2xl font-semibold mb-4">All Users</h4>
                 <div class="overflow-x-auto">
@@ -145,7 +148,7 @@
 
     </main>
 
-    <div id="edit-movie-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+    <div id="edit-movie-modal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
         <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-2xl">
             <h3 class="text-3xl font-bold mb-6">Edit Movie (ID: <span id="edit-movie-id-display"></span>)</h3>
             
@@ -187,6 +190,60 @@
                         </button>
                     </div>
                     <p id="edit-movie-message" class="text-green-400"></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-user-modal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-2xl">
+            <h3 class="text-3xl font-bold mb-6">Edit User (ID: <span id="edit-user-id-display"></span>)</h3>
+            
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                
+                <div class="mb-4">
+                    <label for="edit-user-email" class="block text-sm font-medium mb-2">Email (Cannot be changed)</label>
+                    <input type="email" id="edit-user-email" class="w-full p-2 bg-gray-700 rounded-md text-gray-400 cursor-not-allowed" disabled>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label for="edit-user-first-name" class="block text-sm font-medium mb-2">First Name</label>
+                        <input type="text" id="edit-user-first-name" class="w-full p-2 bg-gray-700 rounded-md text-white">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-user-last-name" class="block text-sm font-medium mb-2">Last Name</label>
+                        <input type="text" id="edit-user-last-name" class="w-full p-2 bg-gray-700 rounded-md text-white">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-user-phone" class="block text-sm font-medium mb-2">Phone</label>
+                        <input type="tel" id="edit-user-phone" class="w-full p-2 bg-gray-700 rounded-md text-white">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-user-balance" class="block text-sm font-medium mb-2">Balance ($) (Add funds here)</label>
+                        <input type="number" id="edit-user-balance" step="0.01" class="w-full p-2 bg-gray-700 rounded-md text-white">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-user-telegram" class="block text-sm font-medium mb-2">Telegram Chat ID</label>
+                        <input type="text" id="edit-user-telegram" class="w-full p-2 bg-gray-700 rounded-md text-white">
+                    </div>
+                    <div class="mb-4 flex items-center pt-6">
+                        <input type="checkbox" id="edit-user-is-admin" class="h-4 w-4 text-indigo-600 bg-gray-700 border-gray-600 rounded">
+                        <label for="edit-user-is-admin" class="ml-2 block text-sm font-medium">Is Admin?</label>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mt-6">
+                    <div>
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md">
+                            Save User Changes
+                        </button>
+                        <button type="button" id="cancel-edit-user-btn" class="ml-4 text-gray-400 hover:text-white">
+                            Cancel
+                        </button>
+                    </div>
+                    <p id="edit-user-message" class="text-green-400"></p>
                 </div>
             </form>
         </div>

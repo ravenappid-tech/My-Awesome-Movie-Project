@@ -1,6 +1,9 @@
-// js/dashboard.js (ไฟล์เต็ม - เพิ่ม Logic ตรวจสอบ Admin)
+// js/dashboard.js (ไฟล์เต็ม - เพิ่ม Logic ตรวจสอบ Admin และ $100)
 
 const API_URL = 'http://localhost:3001';
+// ‼️ (ใหม่) กำหนดค่าคงที่ใน Frontend ให้ตรงกับ Backend
+const MONTHLY_RENEWAL_COST = 30.00;
+const MINIMUM_BALANCE_TO_CREATE = 100.00;
 
 /**
  * ฟังก์ชันสำหรับ Logout
@@ -27,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logout-button').addEventListener('click', logout);
 });
 
-// --- 2. ฟังก์ชัน: ดึงข้อมูลสถิติ (Stats) (‼️ แก้ไข ‼️) ---
+// --- 2. ฟังก์ชัน: ดึงข้อมูลสถิติ (Stats) (‼️ แก้ไข Logic ปุ่ม ‼️) ---
 async function fetchDashboardStats(token) {
     try {
         const response = await fetch(`${API_URL}/dashboard/stats`, {
@@ -47,21 +50,33 @@ async function fetchDashboardStats(token) {
         document.getElementById('user-balance').textContent = stats.balance; 
         document.getElementById('active-keys-count').textContent = stats.totalKeys;
 
-        // 2.2) ปิด/เปิด ปุ่มสร้าง Key ตาม Balance
+        // 2.2) ‼️ (Logic ใหม่) ปิด/เปิด ปุ่มสร้าง Key ตาม Balance ‼️
         const createKeyBtn = document.getElementById('create-key-btn');
-        if (parseFloat(stats.balance) <= 0) {
+        const balance = parseFloat(stats.balance);
+
+        if (balance < MINIMUM_BALANCE_TO_CREATE) {
+            // (ถ้ามีไม่ถึง $100)
             createKeyBtn.disabled = true;
-            createKeyBtn.textContent = 'Add Funds to Create Key';
+            createKeyBtn.textContent = `Need $${MINIMUM_BALANCE_TO_CREATE.toFixed(2)} to create`;
             createKeyBtn.classList.add('bg-gray-500', 'cursor-not-allowed');
             createKeyBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        
+        } else if (balance < MONTHLY_RENEWAL_COST) {
+            // (ถ้ามีถึง $100 แต่ไม่พอจ่ายค่า Key $30)
+            createKeyBtn.disabled = true;
+            createKeyBtn.textContent = `Need $${MONTHLY_RENEWAL_COST.toFixed(2)} to create`;
+            createKeyBtn.classList.add('bg-gray-500', 'cursor-not-allowed');
+            createKeyBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        
         } else {
+            // (ถ้ามีพอทุกอย่าง)
             createKeyBtn.disabled = false;
-            createKeyBtn.textContent = '+ Create New Key';
+            createKeyBtn.textContent = `+ Create New Key ($${MONTHLY_RENEWAL_COST.toFixed(2)})`;
             createKeyBtn.classList.remove('bg-gray-500', 'cursor-not-allowed');
             createKeyBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
         }
 
-        // 2.3) ‼️ (Logic ใหม่) แสดงลิงก์ Admin ถ้า is_admin = true ‼️
+        // 2.3) แสดงลิงก์ Admin ถ้า is_admin = true
         if (stats.is_admin) {
             const adminLink = document.getElementById('admin-menu-link');
             if (adminLink) {
@@ -128,9 +143,10 @@ function renderApiKeys(keys) {
     });
 }
 
-// --- 5. ฟังก์ชัน: สร้าง Key ใหม่ ---
+// --- 5. ฟังก์ชัน: สร้าง Key ใหม่ (‼️ แก้ไข ‼️) ---
 async function createNewKey(token) {
-    if (!confirm('Are you sure you want to create a new API key? This key will be active for 30 days.')) {
+    // (อัปเดตข้อความยืนยัน)
+    if (!confirm(`Are you sure? This will cost $${MONTHLY_RENEWAL_COST.toFixed(2)} (deducted from your balance) and the key will be active for 30 days.`)) {
         return;
     }
     try {
@@ -147,7 +163,7 @@ async function createNewKey(token) {
         
         alert('New API Key created successfully!');
         fetchApiKeys(token); 
-        fetchDashboardStats(token); 
+        fetchDashboardStats(token); // (สำคัญ!) โหลด Stats ใหม่เพื่ออัปเดต Balance ที่ถูกหักไป
         
     } catch (error) {
         console.error('Error creating key:', error);
@@ -156,15 +172,17 @@ async function createNewKey(token) {
 }
 
 // --- 6. ฟังก์ชัน: ลบ Key ---
-async function deleteApiKey(keyId, keyPrefix) {
-    if (!confirm(`Are you sure you want to delete key ${keyPrefix}? This action cannot be undone.`)) {
+async function deleteApiKey(id, keyPrefix) {
+    const safePrefix = (keyPrefix || '').replace(/'/g, "\\'");
+    if (!confirm(`Are you sure you want to delete key ${safePrefix}? This action cannot be undone.`)) {
         return;
     }
+    
     const token = localStorage.getItem('movieApiToken');
     if (!token) return;
 
     try {
-        const response = await fetch(`${API_URL}/dashboard/keys/${keyId}`, { 
+        const response = await fetch(`${API_URL}/dashboard/keys/${id}`, { 
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });

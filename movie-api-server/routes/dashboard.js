@@ -1,11 +1,16 @@
-// /routes/dashboard.js (ไฟล์เต็ม - เพิ่ม is_admin ใน /stats)
+// /routes/dashboard.js (ไฟล์เต็ม - แก้ไข POST /keys)
 const express = require('express');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs'); 
 const pool = require('../config/db');
 const checkAuth = require('../middleware/checkAuth'); 
+// ‼️ (ใหม่) Import ค่าต่ออายุ (เช่น 30.00) ‼️
+const { MONTHLY_RENEWAL_COST } = require('../middleware/checkApiKey');
 
 const router = express.Router();
+
+// ‼️ (ใหม่) กฎธุรกิจ: ต้องมีเงินอย่างน้อย $100 ถึงจะสร้าง Key ได้ ‼️
+const MINIMUM_BALANCE_TO_CREATE = 100.00;
 
 router.use(checkAuth); 
 
@@ -46,31 +51,26 @@ router.put('/profile', async (req, res) => {
     }
 });
 
-// --- 3. ‼️ GET /dashboard/stats (แก้ไข) ‼️ ---
+// --- 3. GET /dashboard/stats ---
 router.get('/stats', async (req, res) => {
     try {
         const userId = req.user.id; 
-
-        // ‼️ (แก้ไข) ดึง balance และ is_admin มาพร้อมกัน ‼️
         const [users] = await pool.execute(
             'SELECT balance, is_admin FROM users WHERE id = ?',
             [userId]
         );
-
         const [stats] = await pool.execute(
             'SELECT COUNT(*) as totalKeys FROM api_keys WHERE user_id = ?',
             [userId]
         );
-        
         if (users.length === 0) {
              return res.status(404).json({ error: 'User not found' });
         }
-
         res.json({
             email: req.user.email,
             balance: parseFloat(users[0].balance).toFixed(4), 
             totalKeys: stats[0].totalKeys || 0,
-            is_admin: users[0].is_admin // 👈 (ส่งสิทธิ์ Admin กลับไปด้วย)
+            is_admin: users[0].is_admin
         });
     } catch (error) {
         console.error(error);
@@ -93,37 +93,73 @@ router.get('/keys', async (req, res) => {
     }
 });
 
-// --- 5. POST /dashboard/keys ---
+// --- 5. ‼️ POST /dashboard/keys (แก้ไข Logic ทั้งหมด) ‼️ ---
 router.post('/keys', async (req, res) => {
     try {
         const userId = req.user.id;
         const [users] = await pool.execute('SELECT balance FROM users WHERE id = ?', [userId]);
         const currentBalance = parseFloat(users[0].balance);
         
-        if (currentBalance <= 0) {
+        // ‼️ (กฎข้อที่ 1) ตรวจสอบว่ามีเงินถึง $100 หรือไม่
+        if (currentBalance < MINIMUM_BALANCE_TO_CREATE) {
             return res.status(402).json({ 
-                error: 'Insufficient funds. Please add funds to your wallet before creating an API key.' 
+                error: `You must have at least $${MINIMUM_BALANCE_TO_CREATE.toFixed(2)} in your balance to create a new key.` 
+            });
+        }
+
+        // ‼️ (กฎข้อที่ 2) ตรวจสอบว่ามีเงินพอสำหรับ "ค่าสร้าง" ($30) หรือไม่
+        if (currentBalance < MONTHLY_RENEWAL_COST) {
+            return res.status(402).json({
+                error: `You do not have enough funds ($${currentBalance.toFixed(2)}) to pay the initial key cost ($${MONTHLY_RENEWAL_COST.toFixed(2)}).`
             });
         }
         
+        // ‼️ (กฎข้อที่ 3) ถ้ามีเงินพอ -> สร้าง Key, หักเงิน, และบันทึก Transaction
         const newKey = `sk_live_${crypto.randomBytes(16).toString('hex')}`;
         const initialExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); 
 
-        const [result] = await pool.execute(
-            'INSERT INTO api_keys (user_id, api_key, expires_at) VALUES (?, ?, ?)',
-            [userId, newKey, initialExpiryDate]
-        );
-        
-        const newKeyId = result.insertId;
-        res.status(201).json({
-            id: newKeyId,
-            api_key: newKey,
-            status: 'active',
-            expires_at: initialExpiryDate
-        });
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // (A) สร้าง Key
+            const [result] = await connection.execute(
+                'INSERT INTO api_keys (user_id, api_key, expires_at) VALUES (?, ?, ?)',
+                [userId, newKey, initialExpiryDate]
+            );
+            const newKeyId = result.insertId;
+
+            // (B) หักเงิน (Deduct Balance)
+            await connection.execute(
+                "UPDATE users SET balance = balance - ? WHERE id = ?",
+                [MONTHLY_RENEWAL_COST, userId]
+            );
+
+            // (C) บันทึกประวัติ (Log Transaction)
+            await connection.execute(
+                "INSERT INTO transactions (user_id, type, amount, description) VALUES (?, 'debit', ?, ?)",
+                [userId, MONTHLY_RENEWAL_COST, `Initial charge for new API Key ID: ${newKeyId}`]
+            );
+
+            await connection.commit();
+
+            res.status(201).json({
+                id: newKeyId,
+                api_key: newKey,
+                status: 'active',
+                expires_at: initialExpiryDate
+            });
+
+        } catch (dbError) {
+            await connection.rollback();
+            throw dbError; // โยน Error ให้ catch บล็อกด้านนอก
+        } finally {
+            connection.release();
+        }
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Server error' });
+        console.error('Create Key error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 

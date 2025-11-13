@@ -1,4 +1,4 @@
-// js/admin.js (ไฟล์เต็ม - อัปเดตเพิ่ม File Upload)
+// js/admin.js (ไฟล์เต็ม - เพิ่มฟังก์ชัน Edit User)
 
 const API_URL = 'http://localhost:3001'; 
 
@@ -36,19 +36,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // ‼️ (แก้ไข) ผูก Event กับฟอร์ม "Add" ‼️
+    // --- (จัดการ Movie Forms) ---
     document.getElementById('add-movie-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleAddMovie(token);
     });
-
-    // ‼️ (แก้ไข) ผูก Event กับฟอร์ม "Edit" ‼️
     document.getElementById('edit-movie-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleUpdateMovie(token);
     });
-
     document.getElementById('cancel-edit-btn').addEventListener('click', closeEditModal);
+
+    // --- ‼️ (ใหม่) จัดการ User Forms ‼️ ---
+    document.getElementById('edit-user-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleUpdateUser(token);
+    });
+    document.getElementById('cancel-edit-user-btn').addEventListener('click', closeEditUserModal);
+
+
+    // --- (จัดการ Logout) ---
     document.getElementById('logout-button').addEventListener('click', logout);
 
     // 3. โหลดเมนูเริ่มต้น (Movies)
@@ -80,13 +87,16 @@ async function checkAdminStatus(token) {
  * ---------------------------------------------------
  */
 function setActiveMenu(activeMenu, token) {
+    // ซ่อน Content ทั้งหมด
     document.querySelectorAll('.menu-content').forEach(content => {
         content.classList.add('hidden');
     });
+    // แสดง Content ที่เลือก
     const activeContent = document.getElementById(`content-${activeMenu}`);
     if (activeContent) {
         activeContent.classList.remove('hidden');
     }
+    // ปรับ Style ของปุ่มเมนู
     document.querySelectorAll('.admin-menu-item').forEach(item => {
         item.classList.remove('active', 'border-indigo-500', 'text-indigo-400');
         item.classList.add('border-transparent', 'text-gray-400');
@@ -97,6 +107,7 @@ function setActiveMenu(activeMenu, token) {
         activeItem.classList.remove('border-transparent', 'text-gray-400');
     }
 
+    // โหลดข้อมูลสำหรับเมนูนั้นๆ
     if (activeMenu === 'movies') {
         loadMovies(token);
     } else if (activeMenu === 'users') {
@@ -110,7 +121,7 @@ function setActiveMenu(activeMenu, token) {
  * ---------------------------------------------------
  */
 
-// โหลดหนังทั้งหมดมาแสดงในตาราง (‼️ อัปเดต ‼️)
+// โหลดหนังทั้งหมดมาแสดงในตาราง
 async function loadMovies(token) {
     const tableBody = document.getElementById('movies-table-body');
     tableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-400">Loading movies...</td></tr>';
@@ -134,6 +145,7 @@ async function loadMovies(token) {
             const row = document.createElement('tr');
             row.className = 'border-b border-gray-700';
             
+            // (ใช้ stringify เพื่อส่ง "ทั้ง object" movie เข้าไปใน onclick)
             row.innerHTML = `
                 <td class="py-3 pr-3">
                     <img src="${movie.poster_url || 'https://via.placeholder.com/50x75'}" alt="Poster" class="w-12 h-auto rounded">
@@ -161,15 +173,13 @@ async function loadMovies(token) {
     }
 }
 
-// จัดการฟอร์ม "เพิ่มหนัง" (‼️ อัปเดต - ใช้ FormData ‼️)
+// จัดการฟอร์ม "เพิ่มหนัง" (ใช้ FormData)
 async function handleAddMovie(token) {
     const messageEl = document.getElementById('movie-form-message');
     messageEl.textContent = 'Adding...';
     messageEl.className = 'text-gray-400 mt-4 inline-block ml-4';
 
-    // 1. ดึงฟอร์ม
     const form = document.getElementById('add-movie-form');
-    // 2. สร้าง FormData จากฟอร์ม (มันจะดึง name="id", name="title", name="poster_file" ฯลฯ อัตโนมัติ)
     const formData = new FormData(form);
     
     try {
@@ -177,9 +187,8 @@ async function handleAddMovie(token) {
             method: 'POST',
             headers: { 
                 'Authorization': `Bearer ${token}`,
-                // (‼️ ไม่ต้องใส่ 'Content-Type', Browser จะตั้งค่า 'multipart/form-data' ให้เอง ‼️)
             },
-            body: formData // 👈 ส่ง FormData
+            body: formData 
         });
 
         const data = await response.json();
@@ -224,7 +233,7 @@ async function deleteMovie(id, title) {
     }
 }
 
-// ฟังก์ชัน "เปิด Modal แก้ไข"
+// ฟังก์ชัน "เปิด Modal แก้ไขหนัง"
 function openEditModal(movie) {
     document.getElementById('edit-movie-id-display').textContent = movie.id;
     document.getElementById('edit-movie-id').value = movie.id;
@@ -240,20 +249,19 @@ function openEditModal(movie) {
     document.getElementById('edit-movie-modal').classList.remove('hidden');
 }
 
-// ฟังก์ชัน "ปิด Modal แก้ไข"
+// ฟังก์ชัน "ปิด Modal แก้ไขหนัง"
 function closeEditModal() {
     document.getElementById('edit-movie-modal').classList.add('hidden');
     document.getElementById('edit-movie-form').reset(); 
 }
 
-// ฟังก์ชัน "จัดการอัปเดตหนัง" (‼️ อัปเดต - ใช้ FormData ‼️)
+// ฟังก์ชัน "จัดการอัปเดตหนัง" (ใช้ FormData)
 async function handleUpdateMovie(token) {
     const messageEl = document.getElementById('edit-movie-message');
     messageEl.textContent = 'Saving...';
     messageEl.className = 'text-gray-400';
 
     const movieId = document.getElementById('edit-movie-id').value;
-    
     const form = document.getElementById('edit-movie-form');
     const formData = new FormData(form);
 
@@ -262,7 +270,6 @@ async function handleUpdateMovie(token) {
             method: 'PUT', 
             headers: {
                 'Authorization': `Bearer ${token}`,
-                // (‼️ ไม่ต้องใส่ 'Content-Type' ‼️)
             },
             body: formData 
         });
@@ -315,6 +322,8 @@ async function loadUsers(token) {
         users.forEach(user => {
             const row = document.createElement('tr');
             row.className = 'border-b border-gray-700';
+            
+            // (เราใช้ stringify เพื่อส่ง "ทั้ง object" user เข้าไปใน onclick)
             row.innerHTML = `
                 <td class="py-3 pr-3 font-bold">${user.id}</td>
                 <td class="py-3 pr-3">${user.email}</td>
@@ -322,10 +331,12 @@ async function loadUsers(token) {
                 <td class="py-3 pr-3 text-right text-green-400">$${parseFloat(user.balance).toFixed(2)}</td>
                 <td class="py-3 pr-3">${user.is_admin ? '<span class="text-red-500 font-bold">YES</span>' : 'No'}</td>
                 <td class="py-3">
-                    <button class="text-blue-400 hover:text-blue-300 mr-2" onclick="alert('Edit user ID ${user.id} (feature to be built)')">
+                    <button class="text-blue-400 hover:text-blue-300 mr-2" 
+                            onclick='openEditUserModal(${JSON.stringify(user)})'>
                         Edit
                     </button>
-                    <button class="text-red-500 hover:text-red-400" onclick="deleteUser(${user.id}, '${user.email}')">
+                    <button class="text-red-500 hover:text-red-400" 
+                            onclick="deleteUser(${user.id}, '${user.email}')">
                         Delete
                     </button>
                 </td>
@@ -362,5 +373,76 @@ async function deleteUser(id, email) {
     } catch (error) {
         console.error('Error deleting user:', error);
         alert('Error deleting user.');
+    }
+}
+
+// ‼️ (ใหม่) ฟังก์ชัน "เปิด Modal แก้ไขผู้ใช้" ‼️
+function openEditUserModal(user) {
+    // เติมข้อมูลเก่าลงในฟอร์ม Modal
+    document.getElementById('edit-user-id-display').textContent = user.id;
+    document.getElementById('edit-user-id').value = user.id;
+    document.getElementById('edit-user-email').value = user.email;
+    document.getElementById('edit-user-first-name').value = user.first_name || '';
+    document.getElementById('edit-user-last-name').value = user.last_name || '';
+    document.getElementById('edit-user-phone').value = user.phone || '';
+    document.getElementById('edit-user-balance').value = parseFloat(user.balance).toFixed(2);
+    document.getElementById('edit-user-telegram').value = user.telegram_chat_id || '';
+    document.getElementById('edit-user-is-admin').checked = user.is_admin;
+    
+    document.getElementById('edit-user-message').textContent = '';
+
+    // แสดง Modal
+    document.getElementById('edit-user-modal').classList.remove('hidden');
+}
+
+// ‼️ (ใหม่) ฟังก์ชัน "ปิด Modal แก้ไขผู้ใช้" ‼️
+function closeEditUserModal() {
+    document.getElementById('edit-user-modal').classList.add('hidden');
+    document.getElementById('edit-user-form').reset(); 
+}
+
+// ‼️ (ใหม่) ฟังก์ชัน "จัดการอัปเดตผู้ใช้" (Add Funds) ‼️
+async function handleUpdateUser(token) {
+    const messageEl = document.getElementById('edit-user-message');
+    messageEl.textContent = 'Saving...';
+    messageEl.className = 'text-gray-400';
+
+    const userId = document.getElementById('edit-user-id').value;
+    
+    // (รวบรวมข้อมูลจากฟอร์ม)
+    const userData = {
+        first_name: document.getElementById('edit-user-first-name').value,
+        last_name: document.getElementById('edit-user-last-name').value,
+        phone: document.getElementById('edit-user-phone').value,
+        balance: document.getElementById('edit-user-balance').value,
+        telegram_chat_id: document.getElementById('edit-user-telegram').value,
+        is_admin: document.getElementById('edit-user-is-admin').checked,
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/admin/users/${userId}`, {
+            method: 'PUT', // ใช้ PUT (ตามที่ Backend, routes/admin.js, กำหนดไว้)
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify(userData)
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to update user');
+
+        messageEl.textContent = 'Update Successful!';
+        messageEl.className = 'text-green-400';
+
+        setTimeout(() => {
+            closeEditUserModal();
+            loadUsers(token); // โหลดตาราง User ใหม่
+        }, 1000);
+
+    } catch (error) {
+        console.error('Error updating user:', error);
+        messageEl.textContent = `Error: ${error.message}`;
+        messageEl.className = 'text-red-400';
     }
 }

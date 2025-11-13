@@ -1,8 +1,8 @@
-// /middleware/checkApiKey.js (เวอร์ชัน Pre-paid Subscription ที่ต่ออายุอัตโนมัติ)
+// /middleware/checkApiKey.js (ไฟล์เต็ม - แก้ไข module.exports)
 const pool = require('../config/db');
 
 // ‼️ (สำคัญ!) กำหนดราคาต่ออายุรายเดือน
-const MONTHLY_RENEWAL_COST = 30.00; // (ตัวอย่าง)
+const MONTHLY_RENEWAL_COST = 30.00; // (เราจะใช้ราคานี้เป็น "ค่าสร้าง" ด้วย)
 
 async function checkApiKey(req, res, next) {
     const key = req.headers['x-api-key']; 
@@ -47,10 +47,8 @@ async function checkApiKey(req, res, next) {
             // 3. ถ้าหมดอายุ: ตรวจสอบ Balance เพื่อต่ออายุอัตโนมัติ
             if (currentBalance >= MONTHLY_RENEWAL_COST) {
                 
-                // 3.1 ‼️ หักเงินและต่ออายุ (Logic สำคัญ!)
-                const newExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 วัน
+                const newExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); 
                 
-                // (ใช้ Transaction เพื่อความปลอดภัย)
                 try {
                     await connection.beginTransaction();
 
@@ -75,7 +73,7 @@ async function checkApiKey(req, res, next) {
                     await connection.commit();
                 } catch (dbError) {
                     await connection.rollback();
-                    throw dbError; // โยน Error
+                    throw dbError; 
                 }
                 
                 renewalOccurred = true;
@@ -112,5 +110,8 @@ async function checkApiKey(req, res, next) {
     }
 }
 
-// (เรา Export แค่ checkApiKey เพราะ MONTHLY_RENEWAL_COST ใช้แค่ในไฟล์นี้)
-module.exports = checkApiKey;
+// ‼️ (แก้ไข!) เรา Export ทั้งฟังก์ชันและค่าคงที่ ‼️
+module.exports = {
+    checkApiKey,
+    MONTHLY_RENEWAL_COST 
+};
