@@ -1,7 +1,7 @@
 // js/account.js (ไฟล์เต็ม)
 
 //const API_URL = 'https://kuayapi.com';
-const API_URL = 'http://localhost:300';
+const API_URL = 'http://localhost:3001';
 
 
 // --- 1. Event Listener หลัก เมื่อหน้าเว็บโหลด ---

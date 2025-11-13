@@ -8,20 +8,25 @@
 </head>
 <body class="bg-gray-900 text-gray-200 min-h-screen">
 
-<nav class="bg-gray-800 shadow-md">
+    <nav class="bg-gray-800 shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex-shrink-0">
                     <a href="dashboard.html" class="text-2xl font-bold text-indigo-400 hover:text-indigo-300">Dashboard</a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    
                     <a href="pricing.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Funds</a>
-
                     <a href="account.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">Account</a>
-                    
                     <a href="docs.html" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium">API Docs</a>
-
+                    
+                    <a 
+                        href="admin.html" 
+                        id="admin-menu-link" 
+                        class="text-red-500 font-bold hover:bg-red-700 hover:text-white px-3 py-2 rounded-md text-sm hidden"
+                    >
+                        ADMIN PANEL
+                    </a>
+                    
                     <a href="#" id="logout-button" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
                         Logout
                     </a>
@@ -46,7 +51,7 @@
                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                     <h4 class="text-lg font-medium text-gray-400 mb-2">Current Balance</h4>
                     <p class="text-4xl font-bold text-indigo-400">
-                        $<span id="user-balance">0.00</span> 
+                        $<span id="user-balance">0.00</span>
                     </p>
                     <p class="text-sm text-gray-500 mt-2">
                         <a href="pricing.html" class="text-indigo-400 hover:underline">Add funds to your wallet</a>

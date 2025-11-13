@@ -1,11 +1,11 @@
-// /routes/admin.js (ไฟล์เต็ม - จัดการทั้งหนังและผู้ใช้)
+// /routes/admin.js (ไฟล์เต็ม - อัปเดตเพิ่ม Poster URL)
 const express = require('express');
 const pool = require('../config/db');
 const checkAdmin = require('../middleware/checkAdmin'); // Import "ยาม" Admin
 
 const router = express.Router();
 
-// ‼️ ใช้ "ยาม" Admin (checkAdmin) กับทุก API ในไฟล์นี้ ‼️
+// ใช้ "ยาม" Admin (checkAdmin) กับทุก API ในไฟล์นี้
 router.use(checkAdmin);
 
 // ===================================================================
@@ -15,8 +15,9 @@ router.use(checkAdmin);
 // --- GET /admin/movies (API สำหรับ "ดู" หนังทั้งหมด) ---
 router.get('/movies', async (req, res) => {
     try {
+        // ‼️ (แก้ไข) เพิ่ม poster_url ‼️
         const [movies] = await pool.execute(
-            'SELECT * FROM movies ORDER BY id DESC'
+            'SELECT id, title, description, s3_path, poster_url FROM movies ORDER BY id DESC'
         );
         res.json(movies);
     } catch (error) {
@@ -28,18 +29,19 @@ router.get('/movies', async (req, res) => {
 // --- POST /admin/movies (API สำหรับ "เพิ่ม" หนัง) ---
 router.post('/movies', async (req, res) => {
     try {
-        const { id, title, description, s3_path } = req.body;
+        // ‼️ (แก้ไข) เพิ่ม poster_url ‼️
+        const { id, title, description, s3_path, poster_url } = req.body;
 
         if (!id || !title || !s3_path) {
             return res.status(400).json({ error: 'Movie ID, Title, and S3 Path are required.' });
         }
 
-        // (ตรวจสอบว่า s3_path ขึ้นต้นด้วย /)
         const formattedPath = s3_path.startsWith('/') ? s3_path : `/${s3_path}`;
 
+        // ‼️ (แก้ไข) เพิ่ม poster_url ‼️
         await pool.execute(
-            'INSERT INTO movies (id, title, description, s3_path) VALUES (?, ?, ?, ?)',
-            [id, title, description, formattedPath]
+            'INSERT INTO movies (id, title, description, s3_path, poster_url) VALUES (?, ?, ?, ?, ?)',
+            [id, title, description, formattedPath, poster_url]
         );
 
         res.status(201).json({ message: `Movie ID ${id} (${title}) added successfully.` });
@@ -57,7 +59,8 @@ router.post('/movies', async (req, res) => {
 router.put('/movies/:movieId', async (req, res) => {
     try {
         const { movieId } = req.params;
-        const { title, description, s3_path } = req.body;
+        // ‼️ (แก้ไข) เพิ่ม poster_url ‼️
+        const { title, description, s3_path, poster_url } = req.body;
 
         if (!title || !s3_path) {
             return res.status(400).json({ error: 'Title and S3 Path are required.' });
@@ -65,9 +68,10 @@ router.put('/movies/:movieId', async (req, res) => {
         
         const formattedPath = s3_path.startsWith('/') ? s3_path : `/${s3_path}`;
 
+        // ‼️ (แก้ไข) เพิ่ม poster_url ‼️
         const [result] = await pool.execute(
-            'UPDATE movies SET title = ?, description = ?, s3_path = ? WHERE id = ?',
-            [title, description, formattedPath, movieId]
+            'UPDATE movies SET title = ?, description = ?, s3_path = ?, poster_url = ? WHERE id = ?',
+            [title, description, formattedPath, poster_url, movieId]
         );
 
         if (result.affectedRows === 0) {
@@ -106,7 +110,7 @@ router.delete('/movies/:movieId', async (req, res) => {
 
 
 // ===================================================================
-// 2. USER MANAGEMENT (จัดการผู้ใช้ - นี่คือส่วน "ควบคุม" ที่คุณต้องการ)
+// 2. USER MANAGEMENT (จัดการผู้ใช้ - ส่วนนี้เหมือนเดิม)
 // ===================================================================
 
 // --- GET /admin/users (API สำหรับ "ดู" ผู้ใช้ทั้งหมด) ---
@@ -135,7 +139,6 @@ router.get('/users/:userId', async (req, res) => {
         const [keys] = await pool.execute('SELECT * FROM api_keys WHERE user_id = ?', [userId]);
 
         const userData = users[0];
-        // (เราไม่ส่ง password_hash กลับไป)
         delete userData.password_hash;
         
         res.json({
@@ -150,13 +153,11 @@ router.get('/users/:userId', async (req, res) => {
 });
 
 // --- PUT /admin/users/:userId (API สำหรับ "แก้ไข" ผู้ใช้) ---
-// (นี่คือส่วนที่ Admin "ควบคุม" ผู้ใช้ เช่น เติมเงินให้, แต่งตั้ง Admin)
 router.put('/users/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const { first_name, last_name, phone, balance, is_admin, telegram_chat_id } = req.body;
 
-        // ตรวจสอบข้อมูลขั้นพื้นฐาน
         if (first_name === undefined || last_name === undefined || balance === undefined || is_admin === undefined) {
             return res.status(400).json({ error: 'Missing required fields (first_name, last_name, balance, is_admin)' });
         }
@@ -187,7 +188,6 @@ router.delete('/users/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
 
-        // (เนื่องจากเราตั้งค่า ON DELETE CASCADE, การลบ User จะลบ api_keys และ transactions ของเขาด้วย)
         const [result] = await pool.execute(
             'DELETE FROM users WHERE id = ?',
             [userId]

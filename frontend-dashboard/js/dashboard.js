@@ -1,6 +1,5 @@
-// js/dashboard.js (ไฟล์เต็ม - แก้ไข fetchDashboardStats และ createNewKey)
+// js/dashboard.js (ไฟล์เต็ม - เพิ่ม Logic ตรวจสอบ Admin)
 
-//const API_URL = 'https://kuayapi.com';
 const API_URL = 'http://localhost:3001';
 
 /**
@@ -43,11 +42,12 @@ async function fetchDashboardStats(token) {
 
         const stats = await response.json();
 
+        // 2.1) อัปเดตข้อมูลปกติ
         document.getElementById('user-email').textContent = stats.email;
         document.getElementById('user-balance').textContent = stats.balance; 
         document.getElementById('active-keys-count').textContent = stats.totalKeys;
 
-        // ‼️ (Logic ใหม่) ปิด/เปิด ปุ่มสร้าง Key ตาม Balance ‼️
+        // 2.2) ปิด/เปิด ปุ่มสร้าง Key ตาม Balance
         const createKeyBtn = document.getElementById('create-key-btn');
         if (parseFloat(stats.balance) <= 0) {
             createKeyBtn.disabled = true;
@@ -59,6 +59,14 @@ async function fetchDashboardStats(token) {
             createKeyBtn.textContent = '+ Create New Key';
             createKeyBtn.classList.remove('bg-gray-500', 'cursor-not-allowed');
             createKeyBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        }
+
+        // 2.3) ‼️ (Logic ใหม่) แสดงลิงก์ Admin ถ้า is_admin = true ‼️
+        if (stats.is_admin) {
+            const adminLink = document.getElementById('admin-menu-link');
+            if (adminLink) {
+                adminLink.classList.remove('hidden'); // "แสดง" ลิงก์ Admin
+            }
         }
 
     } catch (error) {
@@ -84,7 +92,7 @@ async function fetchApiKeys(token) {
     }
 }
 
-// --- 4. ฟังก์ชัน: แสดงผล API Keys (สร้าง HTML) (‼️ แก้ไข ‼️) ---
+// --- 4. ฟังก์ชัน: แสดงผล API Keys (สร้าง HTML) ---
 function renderApiKeys(keys) {
     const listElement = document.getElementById('api-keys-list');
     listElement.innerHTML = ''; 
@@ -98,7 +106,6 @@ function renderApiKeys(keys) {
         const keyCard = document.createElement('div');
         keyCard.className = 'bg-gray-700 p-4 rounded-md flex justify-between items-center';
         
-        // (เพิ่มการแสดงวันหมดอายุ)
         const expiryDate = new Date(key.expires_at).toLocaleDateString('en-US', {
             year: 'numeric', month: 'short', day: 'numeric'
         });
@@ -121,7 +128,7 @@ function renderApiKeys(keys) {
     });
 }
 
-// --- 5. ฟังก์ชัน: สร้าง Key ใหม่ (‼️ แก้ไข ‼️) ---
+// --- 5. ฟังก์ชัน: สร้าง Key ใหม่ ---
 async function createNewKey(token) {
     if (!confirm('Are you sure you want to create a new API key? This key will be active for 30 days.')) {
         return;
@@ -132,10 +139,9 @@ async function createNewKey(token) {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        const data = await response.json(); // อ่าน JSON เสมอ
+        const data = await response.json(); 
 
         if (!response.ok) {
-            // (แสดง Error ถ้า Balance ไม่พอ)
             throw new Error(data.error || 'Could not create key'); 
         }
         
@@ -145,7 +151,7 @@ async function createNewKey(token) {
         
     } catch (error) {
         console.error('Error creating key:', error);
-        alert(`Error: ${error.message}`); // (แสดง Error ที่มาจาก Backend)
+        alert(`Error: ${error.message}`); 
     }
 }
 
