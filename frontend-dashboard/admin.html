@@ -63,32 +63,34 @@
             
             <section class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
                 <h4 class="text-2xl font-semibold mb-4">Add New Movie</h4>
-                <form id="add-movie-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="movie-id" class="block text-sm font-medium mb-2">Movie ID (e.g., 101, 102)</label>
-                        <input type="number" id="movie-id" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
-                    </div>
-                    <div>
-                        <label for="movie-title" class="block text-sm font-medium mb-2">Title</label>
-                        <input type="text" id="movie-title" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
-                    </div>
-                    <div>
-                        <label for="movie-s3-path" class="block text-sm font-medium mb-2">S3 Path (e.g., /Inception/101/master.m3u8)</label>
-                        <input type="text" id="movie-s3-path" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
-                    </div>
-                    <div>
-                        <label for="movie-poster-url" class="block text-sm font-medium mb-2">Poster URL (e.g., https://.../image.jpg)</label>
-                        <input type="url" id="movie-poster-url" class="w-full p-2 bg-gray-700 rounded-md text-white">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label for="movie-description" class="block text-sm font-medium mb-2">Description</label>
-                        <textarea id="movie-description" rows="3" class="w-full p-2 bg-gray-700 rounded-md text-white"></textarea>
-                    </div>
-                    <div class="md:col-span-2">
-                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md">
-                            Add Movie
-                        </button>
-                        <p id="movie-form-message" class="text-green-400 mt-4 inline-block ml-4"></p>
+                <form id="add-movie-form" enctype="multipart/form-data">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="movie-id" class="block text-sm font-medium mb-2">Movie ID (e.g., 101, 102)</label>
+                            <input type="number" id="movie-id" name="id" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
+                        </div>
+                        <div>
+                            <label for="movie-title" class="block text-sm font-medium mb-2">Title</label>
+                            <input type="text" id="movie-title" name="title" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="movie-s3-path" class="block text-sm font-medium mb-2">S3 Path (e.g., /Inception/101/master.m3u8)</label>
+                            <input type="text" id="movie-s3-path" name="s3_path" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="movie-poster-file" class="block text-sm font-medium mb-2">Poster Image File</label>
+                            <input type="file" id="movie-poster-file" name="poster_file" accept="image/*" class="w-full p-2 bg-gray-700 rounded-md text-white">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="movie-description" class="block text-sm font-medium mb-2">Description</label>
+                            <textarea id="movie-description" name="description" rows="3" class="w-full p-2 bg-gray-700 rounded-md text-white"></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md">
+                                Add Movie
+                            </button>
+                            <p id="movie-form-message" class="text-green-400 mt-4 inline-block ml-4"></p>
+                        </div>
                     </div>
                 </form>
             </section>
@@ -116,7 +118,6 @@
 
         <div id="content-users" class="menu-content hidden">
             <h3 class="text-3xl font-bold mb-6">Manage Users</h3>
-            
             <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h4 class="text-2xl font-semibold mb-4">All Users</h4>
                 <div class="overflow-x-auto">
@@ -145,24 +146,32 @@
         <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-2xl">
             <h3 class="text-3xl font-bold mb-6">Edit Movie (ID: <span id="edit-movie-id-display"></span>)</h3>
             
-            <form id="edit-movie-form">
-                <input type="hidden" id="edit-movie-id">
+            <form id="edit-movie-form" enctype="multipart/form-data">
+                <input type="hidden" id="edit-movie-id" name="id">
 
                 <div class="mb-4">
                     <label for="edit-movie-title" class="block text-sm font-medium mb-2">Title</label>
-                    <input type="text" id="edit-movie-title" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
+                    <input type="text" id="edit-movie-title" name="title" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
                 </div>
                 <div class="mb-4">
                     <label for="edit-movie-s3-path" class="block text-sm font-medium mb-2">S3 Path</label>
-                    <input type="text" id="edit-movie-s3-path" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
+                    <input type="text" id="edit-movie-s3-path" name="s3_path" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
                 </div>
+                
                 <div class="mb-4">
-                    <label for="edit-movie-poster-url" class="block text-sm font-medium mb-2">Poster URL</label>
-                    <input type="url" id="edit-movie-poster-url" class="w-full p-2 bg-gray-700 rounded-md text-white">
+                    <label class="block text-sm font-medium mb-2">Current Poster</label>
+                    <img id="edit-current-poster" src="" alt="Current Poster" class="w-24 h-auto rounded">
+                    <input type="hidden" id="edit-movie-poster-url" name="poster_url">
                 </div>
+
+                <div class="mb-4">
+                    <label for="edit-movie-poster-file" class="block text-sm font-medium mb-2">Upload New Poster (Optional)</label>
+                    <input type="file" id="edit-movie-poster-file" name="poster_file" accept="image/*" class="w-full p-2 bg-gray-700 rounded-md text-white">
+                </div>
+                
                 <div class="mb-6">
                     <label for="edit-movie-description" class="block text-sm font-medium mb-2">Description</label>
-                    <textarea id="edit-movie-description" rows="3" class="w-full p-2 bg-gray-700 rounded-md text-white"></textarea>
+                    <textarea id="edit-movie-description" name="description" rows="3" class="w-full p-2 bg-gray-700 rounded-md text-white"></textarea>
                 </div>
                 
                 <div class="flex justify-between items-center">

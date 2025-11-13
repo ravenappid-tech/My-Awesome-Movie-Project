@@ -1,4 +1,4 @@
-// js/admin.js (ไฟล์เต็ม - อัปเดตเพิ่ม Poster URL)
+// js/admin.js (ไฟล์เต็ม - อัปเดตเพิ่ม File Upload)
 
 const API_URL = 'http://localhost:3001'; 
 
@@ -18,7 +18,6 @@ function logout() {
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('movieApiToken');
 
-    // 1. ตรวจสอบสิทธิ์ Admin
     const isAdmin = await checkAdminStatus(token);
     if (!isAdmin) {
         alert('Access Denied. You do not have permission to view this page.');
@@ -26,8 +25,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. ผูก Event ให้ปุ่มและเมนู
-    
     const menuItems = document.querySelectorAll('.admin-menu-item');
     menuItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -36,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
+    // ‼️ (แก้ไข) เปลี่ยน Listener เป็น 'add-movie-form' ‼️
     document.getElementById('add-movie-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleAddMovie(token);
@@ -49,7 +47,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cancel-edit-btn').addEventListener('click', closeEditModal);
     document.getElementById('logout-button').addEventListener('click', logout);
 
-    // 3. โหลดเมนูเริ่มต้น (Movies)
     setActiveMenu('movies', token);
 });
 
@@ -160,29 +157,31 @@ async function loadMovies(token) {
     }
 }
 
-// จัดการฟอร์ม "เพิ่มหนัง" (‼️ อัปเดต ‼️)
+// จัดการฟอร์ม "เพิ่มหนัง" (‼️ อัปเดต - ใช้ FormData ‼️)
 async function handleAddMovie(token) {
     const messageEl = document.getElementById('movie-form-message');
     messageEl.textContent = 'Adding...';
     messageEl.className = 'text-gray-400 mt-4 inline-block ml-4';
 
-    // (เพิ่ม poster_url)
-    const movieData = {
-        id: document.getElementById('movie-id').value,
-        title: document.getElementById('movie-title').value,
-        s3_path: document.getElementById('movie-s3-path').value,
-        poster_url: document.getElementById('movie-poster-url').value,
-        description: document.getElementById('movie-description').value,
-    };
+    // 1. ดึงฟอร์ม
+    const form = document.getElementById('add-movie-form');
+    // 2. สร้าง FormData จากฟอร์ม
+    const formData = new FormData(form);
+    
+    // (ดึงไฟล์ที่เลือก)
+    const fileInput = document.getElementById('movie-poster-file');
+    if (fileInput.files[0]) {
+        formData.append('poster_file', fileInput.files[0]);
+    }
 
     try {
         const response = await fetch(`${API_URL}/admin/movies`, {
             method: 'POST',
             headers: { 
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json' 
+                // (‼️ ไม่ต้องใส่ 'Content-Type', Browser จะตั้งค่า 'multipart/form-data' ให้เอง ‼️)
             },
-            body: JSON.stringify(movieData)
+            body: formData // 👈 ส่ง FormData
         });
 
         const data = await response.json();
@@ -191,7 +190,7 @@ async function handleAddMovie(token) {
         messageEl.textContent = data.message;
         messageEl.className = 'text-green-400 mt-4 inline-block ml-4';
         
-        document.getElementById('add-movie-form').reset(); 
+        form.reset(); 
         loadMovies(token); 
 
     } catch (error) {
@@ -203,7 +202,8 @@ async function handleAddMovie(token) {
 
 // ฟังก์ชัน "ลบหนัง"
 async function deleteMovie(id, title) {
-    if (!confirm(`Are you sure you want to delete movie ID ${id} (${title})?`)) {
+    const safeTitle = (title || '').replace(/'/g, "\\'");
+    if (!confirm(`Are you sure you want to delete movie ID ${id} (${safeTitle})?`)) {
         return;
     }
     
@@ -228,12 +228,16 @@ async function deleteMovie(id, title) {
 
 // ฟังก์ชัน "เปิด Modal แก้ไข" (‼️ อัปเดต ‼️)
 function openEditModal(movie) {
-    // (เพิ่ม poster_url)
     document.getElementById('edit-movie-id-display').textContent = movie.id;
     document.getElementById('edit-movie-id').value = movie.id;
     document.getElementById('edit-movie-title').value = movie.title;
     document.getElementById('edit-movie-s3-path').value = movie.s3_path;
+    
+    // (แสดงโปสเตอร์ปัจจุบัน)
+    document.getElementById('edit-current-poster').src = movie.poster_url || 'https://via.placeholder.com/100x150';
+    // (เก็บ URL เก่าไว้ เผื่อไม่ได้อัปโหลดไฟล์ใหม่)
     document.getElementById('edit-movie-poster-url').value = movie.poster_url || '';
+    
     document.getElementById('edit-movie-description').value = movie.description || '';
     
     document.getElementById('edit-movie-message').textContent = '';
@@ -243,9 +247,10 @@ function openEditModal(movie) {
 // ฟังก์ชัน "ปิด Modal แก้ไข"
 function closeEditModal() {
     document.getElementById('edit-movie-modal').classList.add('hidden');
+    document.getElementById('edit-movie-form').reset(); // ล้างฟอร์มใน Modal
 }
 
-// ฟังก์ชัน "จัดการอัปเดตหนัง" (‼️ อัปเดต ‼️)
+// ฟังก์ชัน "จัดการอัปเดตหนัง" (‼️ อัปเดต - ใช้ FormData ‼️)
 async function handleUpdateMovie(token) {
     const messageEl = document.getElementById('edit-movie-message');
     messageEl.textContent = 'Saving...';
@@ -253,22 +258,26 @@ async function handleUpdateMovie(token) {
 
     const movieId = document.getElementById('edit-movie-id').value;
     
-    // (เพิ่ม poster_url)
-    const movieData = {
-        title: document.getElementById('edit-movie-title').value,
-        s3_path: document.getElementById('edit-movie-s3-path').value,
-        poster_url: document.getElementById('edit-movie-poster-url').value,
-        description: document.getElementById('edit-movie-description').value,
-    };
+    // 1. ดึงฟอร์ม
+    const form = document.getElementById('edit-movie-form');
+    // 2. สร้าง FormData
+    const formData = new FormData(form);
+
+    // (ดึงไฟล์ใหม่ ถ้ามี)
+    const fileInput = document.getElementById('edit-movie-poster-file');
+    if (fileInput.files[0]) {
+        formData.append('poster_file', fileInput.files[0]);
+    }
+    // (ถ้าไม่มีไฟล์ใหม่ Backend จะใช้ poster_url (hidden input) ที่เราตั้งไว้)
 
     try {
         const response = await fetch(`${API_URL}/admin/movies/${movieId}`, {
             method: 'PUT', 
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json' 
+                // (‼️ ไม่ต้องใส่ 'Content-Type' ‼️)
             },
-            body: JSON.stringify(movieData)
+            body: formData // 👈 ส่ง FormData
         });
 
         const data = await response.json();
@@ -345,7 +354,8 @@ async function loadUsers(token) {
 
 // ฟังก์ชัน "ลบผู้ใช้"
 async function deleteUser(id, email) {
-    if (!confirm(`Are you sure you want to DELETE user ID ${id} (${email})? This action is permanent and will delete all their keys and transactions.`)) {
+    const safeEmail = (email || '').replace(/'/g, "\\'");
+    if (!confirm(`Are you sure you want to DELETE user ID ${id} (${safeEmail})? This action is permanent and will delete all their keys and transactions.`)) {
         return;
     }
     
