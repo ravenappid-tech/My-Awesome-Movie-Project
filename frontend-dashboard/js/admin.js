@@ -1,4 +1,4 @@
-// js/admin.js (ไฟล์เต็ม - เพิ่มฟังก์ชัน Edit User)
+// js/admin.js (ไฟล์เต็ม - แก้ไขการสลับ Modal)
 
 const API_URL = 'http://localhost:3001'; 
 
@@ -18,7 +18,6 @@ function logout() {
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('movieApiToken');
 
-    // 1. ตรวจสอบสิทธิ์ Admin
     const isAdmin = await checkAdminStatus(token);
     if (!isAdmin) {
         alert('Access Denied. You do not have permission to view this page.');
@@ -26,8 +25,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. ผูก Event ให้ปุ่มและเมนู
-    
     const menuItems = document.querySelectorAll('.admin-menu-item');
     menuItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -36,7 +33,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // --- (จัดการ Movie Forms) ---
     document.getElementById('add-movie-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleAddMovie(token);
@@ -47,18 +43,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById('cancel-edit-btn').addEventListener('click', closeEditModal);
 
-    // --- ‼️ (ใหม่) จัดการ User Forms ‼️ ---
     document.getElementById('edit-user-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleUpdateUser(token);
     });
     document.getElementById('cancel-edit-user-btn').addEventListener('click', closeEditUserModal);
 
-
-    // --- (จัดการ Logout) ---
     document.getElementById('logout-button').addEventListener('click', logout);
 
-    // 3. โหลดเมนูเริ่มต้น (Movies)
     setActiveMenu('movies', token);
 });
 
@@ -87,16 +79,13 @@ async function checkAdminStatus(token) {
  * ---------------------------------------------------
  */
 function setActiveMenu(activeMenu, token) {
-    // ซ่อน Content ทั้งหมด
     document.querySelectorAll('.menu-content').forEach(content => {
         content.classList.add('hidden');
     });
-    // แสดง Content ที่เลือก
     const activeContent = document.getElementById(`content-${activeMenu}`);
     if (activeContent) {
         activeContent.classList.remove('hidden');
     }
-    // ปรับ Style ของปุ่มเมนู
     document.querySelectorAll('.admin-menu-item').forEach(item => {
         item.classList.remove('active', 'border-indigo-500', 'text-indigo-400');
         item.classList.add('border-transparent', 'text-gray-400');
@@ -107,7 +96,6 @@ function setActiveMenu(activeMenu, token) {
         activeItem.classList.remove('border-transparent', 'text-gray-400');
     }
 
-    // โหลดข้อมูลสำหรับเมนูนั้นๆ
     if (activeMenu === 'movies') {
         loadMovies(token);
     } else if (activeMenu === 'users') {
@@ -121,31 +109,24 @@ function setActiveMenu(activeMenu, token) {
  * ---------------------------------------------------
  */
 
-// โหลดหนังทั้งหมดมาแสดงในตาราง
 async function loadMovies(token) {
     const tableBody = document.getElementById('movies-table-body');
     tableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-400">Loading movies...</td></tr>';
-
     try {
         const response = await fetch(`${API_URL}/admin/movies`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch movies');
-
         const movies = await response.json();
-
         if (movies.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-400">No movies found.</td></tr>';
             return;
         }
-
         tableBody.innerHTML = ''; 
         movies.forEach(movie => {
             const row = document.createElement('tr');
             row.className = 'border-b border-gray-700';
-            
-            // (ใช้ stringify เพื่อส่ง "ทั้ง object" movie เข้าไปใน onclick)
             row.innerHTML = `
                 <td class="py-3 pr-3">
                     <img src="${movie.poster_url || 'https://via.placeholder.com/50x75'}" alt="Poster" class="w-12 h-auto rounded">
@@ -166,40 +147,30 @@ async function loadMovies(token) {
             `;
             tableBody.appendChild(row);
         });
-
     } catch (error) {
         console.error('Error loading movies:', error);
         tableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-red-500">Error loading movies.</td></tr>';
     }
 }
 
-// จัดการฟอร์ม "เพิ่มหนัง" (ใช้ FormData)
 async function handleAddMovie(token) {
     const messageEl = document.getElementById('movie-form-message');
     messageEl.textContent = 'Adding...';
     messageEl.className = 'text-gray-400 mt-4 inline-block ml-4';
-
     const form = document.getElementById('add-movie-form');
     const formData = new FormData(form);
-    
     try {
         const response = await fetch(`${API_URL}/admin/movies`, {
             method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${token}`,
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData 
         });
-
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to add movie');
-
         messageEl.textContent = data.message;
         messageEl.className = 'text-green-400 mt-4 inline-block ml-4';
-        
         form.reset(); 
         loadMovies(token); 
-
     } catch (error) {
         console.error('Error adding movie:', error);
         messageEl.textContent = `Error: ${error.message}`;
@@ -207,84 +178,74 @@ async function handleAddMovie(token) {
     }
 }
 
-// ฟังก์ชัน "ลบหนัง"
 async function deleteMovie(id, title) {
     const safeTitle = (title || '').replace(/'/g, "\\'");
     if (!confirm(`Are you sure you want to delete movie ID ${id} (${safeTitle})?`)) {
         return;
     }
-    
     const token = localStorage.getItem('movieApiToken');
     if (!token) return;
-
     try {
         const response = await fetch(`${API_URL}/admin/movies/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to delete movie');
-
         alert('Movie deleted successfully!');
         loadMovies(token); 
-
     } catch (error) {
         console.error('Error deleting movie:', error);
         alert('Error deleting movie.');
     }
 }
 
-// ฟังก์ชัน "เปิด Modal แก้ไขหนัง"
+// ‼️ (แก้ไข!) ‼️
 function openEditModal(movie) {
     document.getElementById('edit-movie-id-display').textContent = movie.id;
     document.getElementById('edit-movie-id').value = movie.id;
     document.getElementById('edit-movie-title').value = movie.title;
     document.getElementById('edit-movie-s3-path').value = movie.s3_path;
-    
     document.getElementById('edit-current-poster').src = movie.poster_url || 'https://via.placeholder.com/100x150';
     document.getElementById('edit-movie-poster-url').value = movie.poster_url || '';
-    
     document.getElementById('edit-movie-description').value = movie.description || '';
-    
     document.getElementById('edit-movie-message').textContent = '';
-    document.getElementById('edit-movie-modal').classList.remove('hidden');
+    
+    // (เพิ่ม 'flex' เพื่อแสดง Modal)
+    const modal = document.getElementById('edit-movie-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
-// ฟังก์ชัน "ปิด Modal แก้ไขหนัง"
+// ‼️ (แก้ไข!) ‼️
 function closeEditModal() {
-    document.getElementById('edit-movie-modal').classList.add('hidden');
+    // (ลบ 'flex' เพื่อซ่อน Modal)
+    const modal = document.getElementById('edit-movie-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
     document.getElementById('edit-movie-form').reset(); 
 }
 
-// ฟังก์ชัน "จัดการอัปเดตหนัง" (ใช้ FormData)
 async function handleUpdateMovie(token) {
     const messageEl = document.getElementById('edit-movie-message');
     messageEl.textContent = 'Saving...';
     messageEl.className = 'text-gray-400';
-
     const movieId = document.getElementById('edit-movie-id').value;
     const form = document.getElementById('edit-movie-form');
     const formData = new FormData(form);
-
     try {
         const response = await fetch(`${API_URL}/admin/movies/${movieId}`, {
             method: 'PUT', 
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData 
         });
-
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to update movie');
-
         messageEl.textContent = 'Update Successful!';
         messageEl.className = 'text-green-400';
-
         setTimeout(() => {
             closeEditModal();
             loadMovies(token);
         }, 1000);
-
     } catch (error) {
         console.error('Error updating movie:', error);
         messageEl.textContent = `Error: ${error.message}`;
@@ -299,31 +260,24 @@ async function handleUpdateMovie(token) {
  * ---------------------------------------------------
  */
 
-// โหลดผู้ใช้ทั้งหมดมาแสดงในตาราง
 async function loadUsers(token) {
     const tableBody = document.getElementById('users-table-body');
     tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-gray-400">Loading users...</td></tr>';
-
     try {
         const response = await fetch(`${API_URL}/admin/users`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to fetch users');
-
         const users = await response.json();
-
         if (users.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-gray-400">No users found.</td></tr>';
             return;
         }
-
         tableBody.innerHTML = ''; 
         users.forEach(user => {
             const row = document.createElement('tr');
             row.className = 'border-b border-gray-700';
-            
-            // (เราใช้ stringify เพื่อส่ง "ทั้ง object" user เข้าไปใน onclick)
             row.innerHTML = `
                 <td class="py-3 pr-3 font-bold">${user.id}</td>
                 <td class="py-3 pr-3">${user.email}</td>
@@ -343,42 +297,35 @@ async function loadUsers(token) {
             `;
             tableBody.appendChild(row);
         });
-
     } catch (error) {
         console.error('Error loading users:', error);
         tableBody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-red-500">Error loading users.</td></tr>';
     }
 }
 
-// ฟังก์ชัน "ลบผู้ใช้"
 async function deleteUser(id, email) {
     const safeEmail = (email || '').replace(/'/g, "\\'");
     if (!confirm(`Are you sure you want to DELETE user ID ${id} (${safeEmail})? This action is permanent and will delete all their keys and transactions.`)) {
         return;
     }
-    
     const token = localStorage.getItem('movieApiToken');
     if (!token) return;
-
     try {
         const response = await fetch(`${API_URL}/admin/users/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Failed to delete user');
-
         alert('User deleted successfully!');
         loadUsers(token); 
-
     } catch (error) {
         console.error('Error deleting user:', error);
         alert('Error deleting user.');
     }
 }
 
-// ‼️ (ใหม่) ฟังก์ชัน "เปิด Modal แก้ไขผู้ใช้" ‼️
+// ‼️ (แก้ไข!) ‼️
 function openEditUserModal(user) {
-    // เติมข้อมูลเก่าลงในฟอร์ม Modal
     document.getElementById('edit-user-id-display').textContent = user.id;
     document.getElementById('edit-user-id').value = user.id;
     document.getElementById('edit-user-email').value = user.email;
@@ -388,28 +335,28 @@ function openEditUserModal(user) {
     document.getElementById('edit-user-balance').value = parseFloat(user.balance).toFixed(2);
     document.getElementById('edit-user-telegram').value = user.telegram_chat_id || '';
     document.getElementById('edit-user-is-admin').checked = user.is_admin;
-    
     document.getElementById('edit-user-message').textContent = '';
-
-    // แสดง Modal
-    document.getElementById('edit-user-modal').classList.remove('hidden');
+    
+    // (เพิ่ม 'flex' เพื่อแสดง Modal)
+    const modal = document.getElementById('edit-user-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
-// ‼️ (ใหม่) ฟังก์ชัน "ปิด Modal แก้ไขผู้ใช้" ‼️
+// ‼️ (แก้ไข!) ‼️
 function closeEditUserModal() {
-    document.getElementById('edit-user-modal').classList.add('hidden');
+    // (ลบ 'flex' เพื่อซ่อน Modal)
+    const modal = document.getElementById('edit-user-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
     document.getElementById('edit-user-form').reset(); 
 }
 
-// ‼️ (ใหม่) ฟังก์ชัน "จัดการอัปเดตผู้ใช้" (Add Funds) ‼️
 async function handleUpdateUser(token) {
     const messageEl = document.getElementById('edit-user-message');
     messageEl.textContent = 'Saving...';
     messageEl.className = 'text-gray-400';
-
     const userId = document.getElementById('edit-user-id').value;
-    
-    // (รวบรวมข้อมูลจากฟอร์ม)
     const userData = {
         first_name: document.getElementById('edit-user-first-name').value,
         last_name: document.getElementById('edit-user-last-name').value,
@@ -418,28 +365,23 @@ async function handleUpdateUser(token) {
         telegram_chat_id: document.getElementById('edit-user-telegram').value,
         is_admin: document.getElementById('edit-user-is-admin').checked,
     };
-
     try {
         const response = await fetch(`${API_URL}/admin/users/${userId}`, {
-            method: 'PUT', // ใช้ PUT (ตามที่ Backend, routes/admin.js, กำหนดไว้)
+            method: 'PUT', 
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json' 
             },
             body: JSON.stringify(userData)
         });
-
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to update user');
-
         messageEl.textContent = 'Update Successful!';
         messageEl.className = 'text-green-400';
-
         setTimeout(() => {
             closeEditUserModal();
-            loadUsers(token); // โหลดตาราง User ใหม่
+            loadUsers(token); 
         }, 1000);
-
     } catch (error) {
         console.error('Error updating user:', error);
         messageEl.textContent = `Error: ${error.message}`;

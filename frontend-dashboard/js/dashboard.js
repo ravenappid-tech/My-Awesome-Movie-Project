@@ -1,8 +1,8 @@
-// js/dashboard.js (ไฟล์เต็ม - เพิ่ม Logic ตรวจสอบ Admin และ $100)
+// js/dashboard.js (ไฟล์เต็ม - อัปเดตราคาเป็น 100)
 
 const API_URL = 'http://localhost:3001';
-// ‼️ (ใหม่) กำหนดค่าคงที่ใน Frontend ให้ตรงกับ Backend
-const MONTHLY_RENEWAL_COST = 30.00;
+// ‼️ (แก้ไข!) ‼️
+const MONTHLY_RENEWAL_COST = 100.00;
 const MINIMUM_BALANCE_TO_CREATE = 100.00;
 
 /**
@@ -62,7 +62,7 @@ async function fetchDashboardStats(token) {
             createKeyBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
         
         } else if (balance < MONTHLY_RENEWAL_COST) {
-            // (ถ้ามีถึง $100 แต่ไม่พอจ่ายค่า Key $30)
+            // (ถ้ามีถึง $100 แต่ไม่พอจ่ายค่า Key $100)
             createKeyBtn.disabled = true;
             createKeyBtn.textContent = `Need $${MONTHLY_RENEWAL_COST.toFixed(2)} to create`;
             createKeyBtn.classList.add('bg-gray-500', 'cursor-not-allowed');

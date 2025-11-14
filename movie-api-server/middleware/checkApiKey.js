@@ -1,8 +1,9 @@
-// /middleware/checkApiKey.js (ไฟล์เต็ม - แก้ไข module.exports)
+// /middleware/checkApiKey.js (ไฟล์เต็ม - อัปเดตราคาเป็น 100)
 const pool = require('../config/db');
 
-// ‼️ (สำคัญ!) กำหนดราคาต่ออายุรายเดือน
-const MONTHLY_RENEWAL_COST = 30.00; // (เราจะใช้ราคานี้เป็น "ค่าสร้าง" ด้วย)
+// ‼️ (แก้ไข!) ‼️
+// กำหนดราคาต่ออายุรายเดือน (และค่าสร้าง Key) เป็น 100
+const MONTHLY_RENEWAL_COST = 100.00; 
 
 async function checkApiKey(req, res, next) {
     const key = req.headers['x-api-key']; 
@@ -44,7 +45,7 @@ async function checkApiKey(req, res, next) {
         // 2. ตรวจสอบ: Key หมดอายุหรือยัง
         if (expiresAt && new Date(expiresAt) < new Date()) {
             
-            // 3. ถ้าหมดอายุ: ตรวจสอบ Balance เพื่อต่ออายุอัตโนมัติ
+            // 3. ถ้าหมดอายุ: ตรวจสอบ Balance เพื่อต่ออายุอัตโนมัติ (เช็กว่ามี $100 หรือไม่)
             if (currentBalance >= MONTHLY_RENEWAL_COST) {
                 
                 const newExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); 
@@ -52,7 +53,7 @@ async function checkApiKey(req, res, next) {
                 try {
                     await connection.beginTransaction();
 
-                    // หักเงิน (UPDATE users)
+                    // หักเงิน $100 (UPDATE users)
                     await connection.execute(
                         "UPDATE users SET balance = balance - ? WHERE id = ?",
                         [MONTHLY_RENEWAL_COST, userId]
@@ -110,8 +111,8 @@ async function checkApiKey(req, res, next) {
     }
 }
 
-// ‼️ (แก้ไข!) เรา Export ทั้งฟังก์ชันและค่าคงที่ ‼️
+// ‼️ (แก้ไข!) Export ค่า 100 ‼️
 module.exports = {
     checkApiKey,
-    MONTHLY_RENEWAL_COST 
+    MONTHLY_RENEWAL_COST // (ตอนนี้คือ 100)
 };

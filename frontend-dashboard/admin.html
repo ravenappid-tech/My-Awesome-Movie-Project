@@ -11,19 +11,16 @@
             border-color: #6366F1; /* indigo-500 */
             color: #a5b4fc; /* indigo-300 */
         }
-        /* ซ่อนลูกศรของ input[type=number] */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
+        
+        /* ‼️ (แก้ไข!) ‼️ */
+        /* ซ่อนลูกศรของ input[type=number] (เพิ่ม -webkit- และ standard) */
         input[type=number] {
             -moz-appearance: textfield;
+            -webkit-appearance: textfield;
+            appearance: textfield;
         }
-        /* สไตล์สำหรับ Modal (ซ่อน/แสดง) */
-        .modal.hidden {
-            display: none;
-        }
+        
+        /* (ลบ .modal.hidden เพราะเราใช้ 'hidden' ของ Tailwind โดยตรง) */
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 min-h-screen">
@@ -80,12 +77,10 @@
                             <label for="movie-s3-path" class="block text-sm font-medium mb-2">S3 Path (e.g., /Inception/101/master.m3u8)</label>
                             <input type="text" id="movie-s3-path" name="s3_path" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
                         </div>
-                        
                         <div class="md:col-span-2">
                             <label for="movie-poster-file" class="block text-sm font-medium mb-2">Poster Image File</label>
                             <input type="file" id="movie-poster-file" name="poster_file" accept="image/*" class="w-full p-2 bg-gray-700 rounded-md text-white">
                         </div>
-                        
                         <div class="md:col-span-2">
                             <label for="movie-description" class="block text-sm font-medium mb-2">Description</label>
                             <textarea id="movie-description" name="description" rows="3" class="w-full p-2 bg-gray-700 rounded-md text-white"></textarea>
@@ -123,7 +118,6 @@
 
         <div id="content-users" class="menu-content hidden">
             <h3 class="text-3xl font-bold mb-6">Manage Users</h3>
-            
             <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h4 class="text-2xl font-semibold mb-4">All Users</h4>
                 <div class="overflow-x-auto">
@@ -148,13 +142,11 @@
 
     </main>
 
-    <div id="edit-movie-modal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+    <div id="edit-movie-modal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center z-50">
         <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-2xl">
             <h3 class="text-3xl font-bold mb-6">Edit Movie (ID: <span id="edit-movie-id-display"></span>)</h3>
-            
             <form id="edit-movie-form" enctype="multipart/form-data">
                 <input type="hidden" id="edit-movie-id" name="id">
-
                 <div class="mb-4">
                     <label for="edit-movie-title" class="block text-sm font-medium mb-2">Title</label>
                     <input type="text" id="edit-movie-title" name="title" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
@@ -163,23 +155,19 @@
                     <label for="edit-movie-s3-path" class="block text-sm font-medium mb-2">S3 Path</label>
                     <input type="text" id="edit-movie-s3-path" name="s3_path" class="w-full p-2 bg-gray-700 rounded-md text-white" required>
                 </div>
-                
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-2">Current Poster</label>
                     <img id="edit-current-poster" src="" alt="Current Poster" class="w-24 h-auto rounded">
                     <input type="hidden" id="edit-movie-poster-url" name="poster_url">
                 </div>
-
                 <div class="mb-4">
                     <label for="edit-movie-poster-file" class="block text-sm font-medium mb-2">Upload New Poster (Optional)</label>
                     <input type="file" id="edit-movie-poster-file" name="poster_file" accept="image/*" class="w-full p-2 bg-gray-700 rounded-md text-white">
                 </div>
-                
                 <div class="mb-6">
                     <label for="edit-movie-description" class="block text-sm font-medium mb-2">Description</label>
                     <textarea id="edit-movie-description" name="description" rows="3" class="w-full p-2 bg-gray-700 rounded-md text-white"></textarea>
                 </div>
-                
                 <div class="flex justify-between items-center">
                     <div>
                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md">
@@ -195,18 +183,15 @@
         </div>
     </div>
 
-    <div id="edit-user-modal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+    <div id="edit-user-modal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center z-50">
         <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-2xl">
             <h3 class="text-3xl font-bold mb-6">Edit User (ID: <span id="edit-user-id-display"></span>)</h3>
-            
             <form id="edit-user-form">
                 <input type="hidden" id="edit-user-id">
-                
                 <div class="mb-4">
                     <label for="edit-user-email" class="block text-sm font-medium mb-2">Email (Cannot be changed)</label>
                     <input type="email" id="edit-user-email" class="w-full p-2 bg-gray-700 rounded-md text-gray-400 cursor-not-allowed" disabled>
                 </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="mb-4">
                         <label for="edit-user-first-name" class="block text-sm font-medium mb-2">First Name</label>
@@ -233,7 +218,6 @@
                         <label for="edit-user-is-admin" class="ml-2 block text-sm font-medium">Is Admin?</label>
                     </div>
                 </div>
-
                 <div class="flex justify-between items-center mt-6">
                     <div>
                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md">

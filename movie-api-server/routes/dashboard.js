@@ -1,15 +1,15 @@
-// /routes/dashboard.js (ไฟล์เต็ม - แก้ไข POST /keys)
+// /routes/dashboard.js (ไฟล์เต็ม - อัปเดตราคาเป็น 100)
 const express = require('express');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs'); 
 const pool = require('../config/db');
 const checkAuth = require('../middleware/checkAuth'); 
-// ‼️ (ใหม่) Import ค่าต่ออายุ (เช่น 30.00) ‼️
+// ‼️ (ใหม่) Import ค่า 100 ‼️
 const { MONTHLY_RENEWAL_COST } = require('../middleware/checkApiKey');
 
 const router = express.Router();
 
-// ‼️ (ใหม่) กฎธุรกิจ: ต้องมีเงินอย่างน้อย $100 ถึงจะสร้าง Key ได้ ‼️
+// ‼️ (แก้ไข!) กฎธุรกิจ: ต้องมีเงินอย่างน้อย $100 ถึงจะสร้าง Key ได้ ‼️
 const MINIMUM_BALANCE_TO_CREATE = 100.00;
 
 router.use(checkAuth); 
@@ -107,14 +107,14 @@ router.post('/keys', async (req, res) => {
             });
         }
 
-        // ‼️ (กฎข้อที่ 2) ตรวจสอบว่ามีเงินพอสำหรับ "ค่าสร้าง" ($30) หรือไม่
+        // ‼️ (กฎข้อที่ 2) ตรวจสอบว่ามีเงินพอสำหรับ "ค่าสร้าง" ($100) หรือไม่
         if (currentBalance < MONTHLY_RENEWAL_COST) {
             return res.status(402).json({
                 error: `You do not have enough funds ($${currentBalance.toFixed(2)}) to pay the initial key cost ($${MONTHLY_RENEWAL_COST.toFixed(2)}).`
             });
         }
         
-        // ‼️ (กฎข้อที่ 3) ถ้ามีเงินพอ -> สร้าง Key, หักเงิน, และบันทึก Transaction
+        // ‼️ (กฎข้อที่ 3) ถ้ามีเงินพอ -> สร้าง Key, หักเงิน $100, และบันทึก Transaction
         const newKey = `sk_live_${crypto.randomBytes(16).toString('hex')}`;
         const initialExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); 
 
@@ -129,7 +129,7 @@ router.post('/keys', async (req, res) => {
             );
             const newKeyId = result.insertId;
 
-            // (B) หักเงิน (Deduct Balance)
+            // (B) หักเงิน $100 (Deduct Balance)
             await connection.execute(
                 "UPDATE users SET balance = balance - ? WHERE id = ?",
                 [MONTHLY_RENEWAL_COST, userId]

@@ -1,10 +1,13 @@
-// /routes/movies.js
+// /routes/movies.js (ไฟล์เต็ม - แก้ไข require)
 const express = require('express');
-const pool = require('../config/db');
-// ‼️ แก้ไข: ใช้ checkApiKey โดยตรง (เพราะเป็น middleware หลัก) ‼️
-const checkApiKey = require('../middleware/checkApiKey'); 
-
 const router = express.Router();
+const pool = require('../config/db'); // 1. แก้ไข: ใช้ pool จาก config/db
+
+// ‼️ (แก้ไข!) ‼️
+// 2. ใช้ { checkApiKey } (ปีกกา) เพื่อดึง "ฟังก์ชัน" ออกจาก Object ที่ export มา
+const { checkApiKey } = require('../middleware/checkApiKey'); 
+
+// 3. (ลบการ import ที่ไม่จำเป็นออก)
 
 // ใช้ "ยาม" (checkApiKey) กับทุก API ในไฟล์นี้
 router.use(checkApiKey);
@@ -20,8 +23,7 @@ router.get('/:movieId', async (req, res) => {
             [movieId]
         );
 
-        // ‼️ Logic ที่แก้ไข: ใช้ req.keyData ที่แนบมาจาก Middleware ‼️
-        // checkApiKey จะแนบ keyData มาถ้าผ่านการตรวจสอบ
+        // (req.keyData ถูกแนบมาจาก checkApiKey.js)
         const keyData = req.keyData; 
 
         if (rows.length === 0) {
@@ -55,6 +57,8 @@ router.get('/:movieId', async (req, res) => {
             description: movie.description,
             stream_url: streamUrl // ส่ง URL ที่สมบูรณ์กลับไป
         });
+        
+        // 5. (เราไม่ต้อง Log ที่นี่ เพราะ checkApiKey จัดการแล้ว)
 
     } catch (error) {
         console.error('Error fetching movie details:', error);
